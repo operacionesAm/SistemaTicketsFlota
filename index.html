@@ -307,6 +307,73 @@
             font-weight: 700;
             font-family: 'Courier New', monospace;
         }
+
+        /* ===== SELECTOR DE VEHÍCULO ===== */
+        #mainContent {
+            display: none;
+        }
+
+        .selector-intro {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 22px;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            color: #999;
+            font-size: 13px;
+            margin: 24px 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .divider span {
+            padding: 0 12px;
+        }
+
+        .qr-reader-container {
+            display: none;
+            margin-top: 18px;
+        }
+
+        #qrReader {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid #2a5298;
+        }
+
+        .cancel-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 12px;
+            background: white;
+            color: #dc3545;
+            border: 2px solid #dc3545;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .change-vehicle-btn {
+            display: block;
+            margin: 0 auto 20px;
+            background: none;
+            border: none;
+            color: #2a5298;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -321,9 +388,32 @@
         <!-- MENSAJES -->
         <div id="successMsg" class="message success"></div>
         <div id="errorMsg" class="message error"></div>
-        
+
+        <!-- SELECTOR DE VEHÍCULO (QR universal) -->
+        <div id="selectorScreen">
+            <p class="selector-intro">Selecciona tu vehículo para continuar</p>
+
+            <button class="submit-btn" id="scanBtn" onclick="iniciarEscaneo()">📷 Escanear QR del vehículo</button>
+
+            <div id="qrReaderContainer" class="qr-reader-container">
+                <div id="qrReader"></div>
+                <button class="cancel-btn" onclick="detenerEscaneo()">✖ Cancelar escaneo</button>
+            </div>
+
+            <div class="divider"><span>o selecciona manualmente</span></div>
+
+            <div class="form-group">
+                <label for="placaSelect">🚗 Placa del vehículo</label>
+                <select id="placaSelect" onchange="onPlacaSelect(this.value)">
+                    <option value="">-- Selecciona una placa --</option>
+                </select>
+            </div>
+        </div>
+
         <!-- CONTENIDO PRINCIPAL -->
         <div id="mainContent">
+            <button class="change-vehicle-btn" onclick="cambiarVehiculo()">↺ Cambiar vehículo</button>
+
             <!-- INFORMACIÓN DEL VEHÍCULO -->
             <div class="vehicle-info">
                 <h3>📋 Información del Vehículo</h3>
@@ -404,11 +494,13 @@
             </button>
         </div>
     </div>
-    
+
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script>
         // ===== VARIABLES GLOBALES =====
         let tipoActual = "asignacion";
         let vehicleData = null;
+        let html5QrCode = null;
         
         // Cargar vehículos (incrustados aquí)
         const VEHICULOS = [
@@ -502,24 +594,105 @@
         
         function getPlacaFromURL() {
             const params = new URLSearchParams(window.location.search);
-            return params.get("placa") || "GH7799D";
+            return params.get("placa");
         }
-        
-        function loadVehicleData() {
-            const placa = getPlacaFromURL();
-            const vehicle = VEHICULOS.find(v => v.placa === placa);
-            
+
+        function buscarVehiculoPorPlaca(placa) {
+            const buscada = String(placa).trim().toUpperCase();
+            return VEHICULOS.find(v => v.placa.toUpperCase() === buscada);
+        }
+
+        function poblarSelectPlacas() {
+            const select = document.getElementById("placaSelect");
+            const ordenados = [...VEHICULOS].sort((a, b) => a.placa.localeCompare(b.placa));
+            ordenados.forEach(v => {
+                const option = document.createElement("option");
+                option.value = v.placa;
+                option.textContent = `${v.placa} - ${v.marca} ${v.modelo}`;
+                select.appendChild(option);
+            });
+        }
+
+        function mostrarVehiculo(vehicle) {
+            vehicleData = vehicle;
+            document.getElementById("vehiclePlaca").textContent = vehicle.placa;
+            document.getElementById("vehicleModel").textContent = `${vehicle.marca} ${vehicle.modelo}`;
+            document.getElementById("vehicleYear").textContent = vehicle.año;
+            document.getElementById("vehicleEstado").textContent = vehicle.estado;
+            document.getElementById("vehicleDept").textContent = vehicle.departamento;
+
+            history.replaceState(null, "", "?placa=" + encodeURIComponent(vehicle.placa));
+
+            document.getElementById("selectorScreen").style.display = "none";
+            document.getElementById("mainContent").style.display = "block";
+        }
+
+        function onPlacaSelect(placa) {
+            if (!placa) return;
+            const vehicle = buscarVehiculoPorPlaca(placa);
             if (vehicle) {
-                vehicleData = vehicle;
-                document.getElementById("vehiclePlaca").textContent = vehicle.placa;
-                document.getElementById("vehicleModel").textContent = `${vehicle.marca} ${vehicle.modelo}`;
-                document.getElementById("vehicleYear").textContent = vehicle.año;
-                document.getElementById("vehicleEstado").textContent = vehicle.estado;
-                document.getElementById("vehicleDept").textContent = vehicle.departamento;
+                mostrarVehiculo(vehicle);
             } else {
                 showError("Vehículo no encontrado: " + placa);
-                document.getElementById("vehiclePlaca").textContent = placa + " (no encontrado)";
             }
+        }
+
+        function extraerPlacaDeTexto(texto) {
+            try {
+                const url = new URL(texto);
+                const placaParam = url.searchParams.get("placa");
+                if (placaParam) return placaParam;
+            } catch (e) {
+                // No es una URL, se usa el texto tal cual
+            }
+            return texto.trim();
+        }
+
+        function iniciarEscaneo() {
+            document.getElementById("qrReaderContainer").style.display = "block";
+            document.getElementById("scanBtn").style.display = "none";
+
+            html5QrCode = new Html5Qrcode("qrReader");
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: 230 },
+                (decodedText) => {
+                    const placa = extraerPlacaDeTexto(decodedText);
+                    detenerEscaneo();
+                    const vehicle = buscarVehiculoPorPlaca(placa);
+                    if (vehicle) {
+                        mostrarVehiculo(vehicle);
+                    } else {
+                        showError("QR no reconocido: " + placa);
+                    }
+                },
+                () => { /* errores de lectura por frame, se ignoran */ }
+            ).catch((err) => {
+                showError("No se pudo acceder a la cámara: " + err);
+                document.getElementById("qrReaderContainer").style.display = "none";
+                document.getElementById("scanBtn").style.display = "block";
+            });
+        }
+
+        function detenerEscaneo() {
+            document.getElementById("qrReaderContainer").style.display = "none";
+            document.getElementById("scanBtn").style.display = "block";
+
+            if (html5QrCode) {
+                const instancia = html5QrCode;
+                html5QrCode = null;
+                instancia.stop().then(() => instancia.clear()).catch(() => {});
+            }
+        }
+
+        function cambiarVehiculo() {
+            detenerEscaneo();
+            vehicleData = null;
+            history.replaceState(null, "", window.location.pathname);
+
+            document.getElementById("mainContent").style.display = "none";
+            document.getElementById("successDiv").classList.remove("active");
+            document.getElementById("selectorScreen").style.display = "block";
         }
         
         function toggleType(type) {
@@ -634,7 +807,17 @@
         
         // Inicializar al cargar
         window.onload = function() {
-            loadVehicleData();
+            poblarSelectPlacas();
+
+            const placa = getPlacaFromURL();
+            if (placa) {
+                const vehicle = buscarVehiculoPorPlaca(placa);
+                if (vehicle) {
+                    mostrarVehiculo(vehicle);
+                } else {
+                    showError("Vehículo no encontrado: " + placa);
+                }
+            }
         };
     </script>
 </body>

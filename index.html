@@ -423,33 +423,39 @@
                 <p><strong>Estado:</strong> <span id="vehicleEstado">--</span></p>
                 <p><strong>Departamento:</strong> <span id="vehicleDept">--</span></p>
             </div>
-            
+
+            <!-- IDENTIFICACIÓN DE QUIEN LEVANTA EL TICKET -->
+            <div class="form-group">
+                <label for="nombreSolicitante">👤 Nombre de quien levanta el ticket</label>
+                <input type="text" id="nombreSolicitante" placeholder="Ej: Juan Pérez" required>
+            </div>
+
+            <div class="form-group">
+                <label for="departamentoSolicitante">🏢 Departamento</label>
+                <select id="departamentoSolicitante" required>
+                    <option value="">-- Selecciona un departamento --</option>
+                    <option value="Distribuciones">Distribuciones</option>
+                    <option value="EMA">EMA</option>
+                    <option value="Otro">Otro</option>
+                </select>
+            </div>
+
             <!-- TOGGLE ASIGNACIÓN/REPORTE -->
             <div class="toggle-group">
                 <button class="toggle-btn active" onclick="toggleType('asignacion')">✅ Asignación</button>
                 <button class="toggle-btn" onclick="toggleType('reporte')">⚠️ Reporte</button>
             </div>
-            
+
             <!-- FORMULARIO ASIGNACIÓN -->
             <div id="formAsignacion" class="form-section active">
-                <div class="form-group">
-                    <label for="operadorAsignacion">👤 Nombre del Operador</label>
-                    <input type="text" id="operadorAsignacion" placeholder="Ej: Juan Pérez" required>
-                </div>
-                
                 <div class="form-group">
                     <label for="proposito">🎯 Propósito / Destino</label>
                     <input type="text" id="proposito" placeholder="Ej: Distribución Centro" required>
                 </div>
             </div>
-            
+
             <!-- FORMULARIO REPORTE -->
             <div id="formReporte" class="form-section">
-                <div class="form-group">
-                    <label for="operadorReporte">👤 Nombre del Operador</label>
-                    <input type="text" id="operadorReporte" placeholder="Ej: Pedro García" required>
-                </div>
-                
                 <div class="form-group">
                     <label for="tipoIncidencia">🔴 Tipo de Incidencia</label>
                     <select id="tipoIncidencia" required>
@@ -748,35 +754,41 @@
                 showError("Error: Vehículo no cargado");
                 return;
             }
-            
+
+            const nombreSolicitante = document.getElementById("nombreSolicitante").value.trim();
+            const departamentoSolicitante = document.getElementById("departamentoSolicitante").value;
+
+            if (!nombreSolicitante || !departamentoSolicitante) {
+                showError("Por favor identifica quién levanta el ticket (nombre y departamento)");
+                return;
+            }
+
             const formData = {
                 tipo: tipoActual,
                 placa: vehicleData.placa,
-                vehiculo: `${vehicleData.marca} ${vehicleData.modelo} ${vehicleData.año}`
+                vehiculo: `${vehicleData.marca} ${vehicleData.modelo} ${vehicleData.año}`,
+                operador: nombreSolicitante,
+                departamentoSolicitante: departamentoSolicitante
             };
-            
+
             if (tipoActual === "asignacion") {
-                const operador = document.getElementById("operadorAsignacion").value.trim();
                 const proposito = document.getElementById("proposito").value.trim();
-                
-                if (!operador || !proposito) {
+
+                if (!proposito) {
                     showError("Por favor completa todos los campos");
                     return;
                 }
-                
-                formData.operador = operador;
+
                 formData.proposito = proposito;
             } else {
-                const operador = document.getElementById("operadorReporte").value.trim();
                 const tipoInc = document.getElementById("tipoIncidencia").value;
                 const desc = document.getElementById("descripcion").value.trim();
 
-                if (!operador || !tipoInc || !desc) {
+                if (!tipoInc || !desc) {
                     showError("Por favor completa todos los campos");
                     return;
                 }
 
-                formData.operador = operador;
                 formData.tipoIncidencia = tipoInc;
                 formData.descripcion = desc;
             }

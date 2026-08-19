@@ -115,6 +115,7 @@
     }
 
     .card {
+        position: relative;
         background: white;
         border-radius: 14px;
         box-shadow: 0 8px 24px rgba(0,0,0,0.18);
@@ -123,6 +124,22 @@
         flex-direction: column;
         align-items: center;
     }
+
+    .card.seleccionada { outline: 3px solid #2a5298; outline-offset: -3px; }
+
+    .card-check {
+        display: none;
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        width: 22px;
+        height: 22px;
+        z-index: 2;
+        accent-color: #2a5298;
+        cursor: pointer;
+    }
+
+    .modo-seleccion .card-check { display: block; }
 
     .card canvas {
         max-width: 100%;
@@ -184,6 +201,71 @@
         padding: 40px;
         text-align: center;
         color: #888;
+    }
+
+    /* ===== BARRA DE IMPRESIÓN ===== */
+    .print-bar {
+        display: none;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: white;
+        box-shadow: 0 -6px 24px rgba(0,0,0,0.25);
+        padding: 14px 24px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        z-index: 150;
+    }
+
+    .print-bar span {
+        font-size: 14px;
+        font-weight: 600;
+        color: #1e3c72;
+    }
+
+    .print-bar .acciones { display: flex; gap: 10px; }
+    .print-bar button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ===== HOJA DE IMPRESIÓN (solo visible al imprimir) ===== */
+    #printSheet { display: none; }
+
+    @media print {
+        body * { visibility: hidden; }
+        #printSheet, #printSheet * { visibility: visible; }
+        #printSheet {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+        }
+
+        .print-single {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        .print-single img { max-width: 92%; max-height: 92%; }
+
+        .print-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 4mm;
+            height: 100vh;
+            break-after: page;
+        }
+        .print-grid:last-child { break-after: auto; }
+        .print-grid img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        @page { size: letter portrait; margin: 8mm; }
     }
 
     /* ===== ACCESO (clave de administrador) ===== */
@@ -390,6 +472,7 @@
         <button class="btn btn-success" onclick="abrirModalNuevo()">➕ Nuevo vehículo / QR</button>
         <button class="btn btn-outline" onclick="exportarJSON()">📥 Exportar vehiculos.json</button>
         <button class="btn btn-outline" onclick="abrirModalPendientes()">📋 Solicitudes pendientes</button>
+        <button class="btn btn-outline" id="btnModoImprimir" onclick="toggleModoSeleccion()">🖨️ Imprimir QRs</button>
     </div>
 
     <p class="contador" id="contador"></p>
@@ -398,6 +481,16 @@
     <div class="vacio" id="vacio" style="display:none;">No se encontraron vehículos con ese criterio.</div>
 
 </div>
+
+<div class="print-bar" id="printBar">
+    <span id="printBarTexto">0 vehículo(s) seleccionado(s)</span>
+    <div class="acciones">
+        <button class="btn btn-outline" onclick="cancelarSeleccion()">Cancelar</button>
+        <button class="btn btn-success" id="btnImprimirSeleccionados" onclick="imprimirSeleccionados()" disabled>🖨️ Imprimir seleccionados</button>
+    </div>
+</div>
+
+<div id="printSheet"></div>
 
 <!-- MODAL SOLICITUDES PENDIENTES -->
 <div class="modal-overlay" id="modalPendientesOverlay">
@@ -690,11 +783,29 @@
         contador.textContent = `${lista.length} de ${vehiculos.length} vehículos`;
 
         grid.innerHTML = "";
+        grid.classList.toggle("modo-seleccion", modoSeleccion);
         vacio.style.display = lista.length === 0 ? "block" : "none";
 
         lista.forEach(v => {
             const card = document.createElement("div");
             card.className = "card";
+            card.dataset.placa = v.placa;
+            if (seleccionados.has(v.placa)) card.classList.add("seleccionada");
+
+            if (modoSeleccion) {
+                const check = document.createElement("input");
+                check.type = "checkbox";
+                check.className = "card-check";
+                check.checked = seleccionados.has(v.placa);
+                check.onclick = (e) => {
+                    e.stopPropagation();
+                    if (check.checked) seleccionados.add(v.placa);
+                    else seleccionados.delete(v.placa);
+                    card.classList.toggle("seleccionada", check.checked);
+                    actualizarBarraImpresion();
+                };
+                card.appendChild(check);
+            }
 
             const canvas = document.createElement("canvas");
             card.appendChild(canvas);
@@ -746,6 +857,78 @@
             a.click();
             URL.revokeObjectURL(url);
         }, "image/png");
+    }
+
+    // ===== IMPRESIÓN DE QRs SELECCIONADOS =====
+    // Un solo QR: se imprime a página completa (tú decides el tamaño final al imprimirlo/en
+    // la papelería). Dos o más: se acomodan fijos en hojas de 3 columnas x 4 filas (12 por hoja).
+    let modoSeleccion = false;
+    let seleccionados = new Set();
+
+    function toggleModoSeleccion() {
+        modoSeleccion = !modoSeleccion;
+        seleccionados.clear();
+        document.getElementById("btnModoImprimir").textContent = modoSeleccion ? "✖ Cancelar selección" : "🖨️ Imprimir QRs";
+        renderGrid();
+        actualizarBarraImpresion();
+    }
+
+    function cancelarSeleccion() {
+        if (modoSeleccion) toggleModoSeleccion();
+    }
+
+    function actualizarBarraImpresion() {
+        const bar = document.getElementById("printBar");
+        bar.style.display = modoSeleccion ? "flex" : "none";
+
+        const n = seleccionados.size;
+        const texto = document.getElementById("printBarTexto");
+        if (n === 0) {
+            texto.textContent = "0 vehículo(s) seleccionado(s)";
+        } else if (n === 1) {
+            texto.textContent = "1 vehículo seleccionado — se imprimirá a página completa";
+        } else {
+            texto.textContent = `${n} vehículos seleccionados — se acomodarán 3×4 (12 por hoja)`;
+        }
+
+        document.getElementById("btnImprimirSeleccionados").disabled = n === 0;
+    }
+
+    async function imagenQRPara(vehiculo) {
+        const canvas = document.createElement("canvas");
+        await dibujarQR(canvas, vehiculo);
+        const img = document.createElement("img");
+        img.src = canvas.toDataURL("image/png");
+        img.alt = vehiculo.placa || "";
+        return img;
+    }
+
+    async function imprimirSeleccionados() {
+        if (seleccionados.size === 0) return;
+
+        const vehiculosSel = vehiculos.filter(v => seleccionados.has(v.placa));
+        const sheet = document.getElementById("printSheet");
+        sheet.innerHTML = "";
+
+        if (vehiculosSel.length === 1) {
+            const div = document.createElement("div");
+            div.className = "print-single";
+            div.appendChild(await imagenQRPara(vehiculosSel[0]));
+            sheet.appendChild(div);
+        } else {
+            const POR_HOJA = 12;
+            for (let i = 0; i < vehiculosSel.length; i += POR_HOJA) {
+                const trozo = vehiculosSel.slice(i, i + POR_HOJA);
+                const hoja = document.createElement("div");
+                hoja.className = "print-grid";
+                for (const v of trozo) {
+                    hoja.appendChild(await imagenQRPara(v));
+                }
+                sheet.appendChild(hoja);
+            }
+        }
+
+        setTimeout(() => window.print(), 80);
     }
 
     function eliminarVehiculo(id) {

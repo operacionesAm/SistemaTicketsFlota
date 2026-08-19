@@ -476,7 +476,7 @@
             </div>
 
             <div class="form-group">
-                <label for="numeroNomina">🪪 Número de nómina (opcional)</label>
+                <label for="numeroNomina" id="labelNomina">🪪 Número de nómina</label>
                 <input type="text" id="numeroNomina" placeholder="Ej: 12345">
             </div>
 
@@ -528,8 +528,8 @@
         <!-- PANTALLA DE ÉXITO -->
         <div id="successDiv" class="success-container">
             <div class="success-icon">✅</div>
-            <h2>¡Ticket Registrado!</h2>
-            <p>Tu reporte ha sido registrado exitosamente en el sistema.</p>
+            <h2 id="successTitulo">¡Ticket Registrado!</h2>
+            <p id="successTexto">Tu reporte ha sido registrado exitosamente en el sistema.</p>
             <div class="folio-box">
                 <div class="folio-label">Folio del Ticket</div>
                 <div class="folio-number" id="folioDisplay">TKT-XXXXX</div>
@@ -665,6 +665,15 @@
         function mostrarSeccionFormulario(tipo) {
             document.getElementById("formAsignacion").classList.toggle("active", tipo === "asignacion");
             document.getElementById("formReporte").classList.toggle("active", tipo === "reporte");
+            actualizarCampoNomina(tipo);
+        }
+
+        function actualizarCampoNomina(tipo) {
+            const input = document.getElementById("numeroNomina");
+            const label = document.getElementById("labelNomina");
+            const esObligatoria = tipo === "asignacion";
+            input.required = esObligatoria;
+            label.textContent = esObligatoria ? "🪪 Número de nómina" : "🪪 Número de nómina (opcional)";
         }
 
         function mostrarVehiculo(vehicle) {
@@ -840,6 +849,12 @@
             document.getElementById("loadingDiv").classList.remove("active");
             document.getElementById("successDiv").classList.add("active");
             document.getElementById("folioDisplay").textContent = folio;
+
+            const esSolicitud = modoFlujo === "universalSolicitud";
+            document.getElementById("successTitulo").textContent = esSolicitud ? "¡Solicitud Registrada!" : "¡Ticket Registrado!";
+            document.getElementById("successTexto").textContent = esSolicitud
+                ? "Tu solicitud de vehículo quedó registrada. El equipo de flota la revisará y te asignará una unidad."
+                : "Tu reporte ha sido registrado exitosamente en el sistema.";
         }
         
         function submitForm() {
@@ -857,6 +872,11 @@
 
             if (!nombreSolicitante || !departamentoSolicitante) {
                 showError("Por favor identifica quién levanta el ticket (nombre y departamento)");
+                return;
+            }
+
+            if (tipoActual === "asignacion" && !numeroNomina) {
+                showError("El número de nómina es obligatorio para pedir un vehículo");
                 return;
             }
 

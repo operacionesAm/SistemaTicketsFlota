@@ -219,11 +219,30 @@
         z-index: 150;
     }
 
+    .print-bar-info {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+
     .print-bar span {
         font-size: 14px;
         font-weight: 600;
         color: #1e3c72;
     }
+
+    .btn-link {
+        background: none;
+        border: none;
+        padding: 4px 2px;
+        color: #2a5298;
+        font-size: 12.5px;
+        font-weight: 600;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+    .btn-link:hover { color: #1e3c72; }
 
     .print-bar .acciones { display: flex; gap: 10px; }
     .print-bar button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -232,21 +251,20 @@
     #printSheet { display: none; }
 
     @media print {
-        body * { visibility: hidden; }
-        #printSheet, #printSheet * { visibility: visible; }
-        #printSheet {
-            display: block;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-        }
+        /* 100vh y "ocultar con visibility" quedan mal en PDF: el contenido normal
+           (oculto pero aún en el flujo) o los redondeos de vh contra @page margin
+           terminan generando hojas en blanco extra. Se oculta con display:none y
+           se mide la hoja de impresión en mm reales, no en unidades de viewport. */
+        body { padding: 0; background: none; }
+        .gate-overlay, .wrap, .print-bar, .modal-overlay { display: none !important; }
+
+        #printSheet { display: block; }
 
         .print-single {
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            height: 260mm;
         }
         .print-single img { max-width: 92%; max-height: 92%; }
 
@@ -255,7 +273,7 @@
             grid-template-columns: repeat(3, 1fr);
             grid-template-rows: repeat(4, 1fr);
             gap: 4mm;
-            height: 100vh;
+            height: 260mm;
             break-after: page;
         }
         .print-grid:last-child { break-after: auto; }
@@ -483,7 +501,11 @@
 </div>
 
 <div class="print-bar" id="printBar">
-    <span id="printBarTexto">0 vehículo(s) seleccionado(s)</span>
+    <div class="print-bar-info">
+        <span id="printBarTexto">0 vehículo(s) seleccionado(s)</span>
+        <button class="btn-link" onclick="seleccionarTodos()">Seleccionar todos</button>
+        <button class="btn-link" onclick="deseleccionarTodos()">Deseleccionar todos</button>
+    </div>
     <div class="acciones">
         <button class="btn btn-outline" onclick="cancelarSeleccion()">Cancelar</button>
         <button class="btn btn-success" id="btnImprimirSeleccionados" onclick="imprimirSeleccionados()" disabled>🖨️ Imprimir seleccionados</button>
@@ -875,6 +897,18 @@
 
     function cancelarSeleccion() {
         if (modoSeleccion) toggleModoSeleccion();
+    }
+
+    function seleccionarTodos() {
+        vehiculosFiltrados().forEach(v => seleccionados.add(v.placa));
+        renderGrid();
+        actualizarBarraImpresion();
+    }
+
+    function deseleccionarTodos() {
+        seleccionados.clear();
+        renderGrid();
+        actualizarBarraImpresion();
     }
 
     function actualizarBarraImpresion() {

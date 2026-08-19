@@ -1486,15 +1486,10 @@
             const canvas = document.createElement("canvas");
             card.appendChild(canvas);
 
-            const placa = document.createElement("div");
-            placa.className = "placa";
-            placa.textContent = v.placa || "(sin placa)";
-            card.appendChild(placa);
-
-            const modelo = document.createElement("div");
-            modelo.className = "modelo";
-            modelo.textContent = `${v.marca || ""} ${v.modelo || ""} ${v.año || ""}`.trim();
-            card.appendChild(modelo);
+            const meta = document.createElement("div");
+            meta.className = "modelo";
+            meta.textContent = [v.año, v.departamento].filter(Boolean).join(" · ");
+            card.appendChild(meta);
 
             const badge = document.createElement("span");
             badge.className = "badge " + claseBadge(v.estado);

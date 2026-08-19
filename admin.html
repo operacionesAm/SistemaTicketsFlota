@@ -255,6 +255,52 @@
     }
 
     .modal-actions button { flex: 1; padding: 12px; }
+
+    .pendiente-item {
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 14px;
+        margin-bottom: 12px;
+    }
+
+    .pendiente-item .folio {
+        font-weight: 700;
+        color: #1e3c72;
+        font-size: 14px;
+        margin-bottom: 6px;
+    }
+
+    .pendiente-item .detalle {
+        color: #555;
+        font-size: 12.5px;
+        line-height: 1.5;
+        margin-bottom: 10px;
+    }
+
+    .pendiente-item .asignar-row {
+        display: flex;
+        gap: 8px;
+    }
+
+    .pendiente-item select {
+        flex: 1;
+        padding: 8px 10px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 13px;
+    }
+
+    .pendiente-item button {
+        padding: 8px 14px;
+        border: none;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        color: white;
+        font-weight: 600;
+        font-size: 13px;
+        cursor: pointer;
+        white-space: nowrap;
+    }
 </style>
 </head>
 <body>
@@ -277,6 +323,7 @@
         <input type="text" id="buscador" placeholder="🔍 Buscar por placa, marca, modelo o departamento..." oninput="renderGrid()">
         <button class="btn btn-success" onclick="abrirModalNuevo()">➕ Nuevo vehículo / QR</button>
         <button class="btn btn-outline" onclick="exportarJSON()">📥 Exportar vehiculos.json</button>
+        <button class="btn btn-outline" onclick="abrirModalPendientes()">📋 Solicitudes pendientes</button>
     </div>
 
     <p class="contador" id="contador"></p>
@@ -284,6 +331,33 @@
     <div class="grid" id="grid"></div>
     <div class="vacio" id="vacio" style="display:none;">No se encontraron vehículos con ese criterio.</div>
 
+</div>
+
+<!-- MODAL SOLICITUDES PENDIENTES -->
+<div class="modal-overlay" id="modalPendientesOverlay">
+    <div class="modal" style="max-width: 640px;">
+        <h2>📋 Solicitudes de vehículo pendientes</h2>
+        <p style="color:#666; font-size:13px; margin-bottom:16px;">
+            Tickets de "Pedir un vehículo" que aún no tienen unidad asignada (placa = "Sin asignar" en la hoja ASIGNACIONES).
+        </p>
+
+        <div class="form-row" style="align-items:end;">
+            <div class="form-group">
+                <label for="claveAdmin">Clave de administrador</label>
+                <input type="password" id="claveAdmin" placeholder="Clave">
+            </div>
+            <div class="form-group">
+                <button class="btn btn-primary" style="width:100%;" onclick="cargarPendientes()">🔄 Cargar solicitudes</button>
+            </div>
+        </div>
+
+        <p id="pendientesMensaje" style="font-size:13px; margin-bottom:10px;"></p>
+        <div id="listaPendientes"></div>
+
+        <div class="modal-actions">
+            <button class="btn btn-outline" style="flex:none; width:100%;" onclick="cerrarModalPendientes()">Cerrar</button>
+        </div>
+    </div>
 </div>
 
 <!-- MODAL NUEVO / EDITAR -->
@@ -1375,6 +1449,7 @@
 ];
 
     const URL_BASE = "https://sistema-tickets-flota-m7bl.vercel.app";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwAejrBRZT_2n1xm1sTkwqXKdyTBkw5dHXR3arFfrqbboXzFW4vPyeewaB2rWBDWjWilg/exec";
 
     const logoImg = new Image();
     logoImg.src = "logo-am.webp";
@@ -1649,6 +1724,136 @@
 
     document.getElementById("modalOverlay").addEventListener("click", (e) => {
         if (e.target.id === "modalOverlay") cerrarModal();
+    });
+
+    // ===== SOLICITUDES PENDIENTES (conecta con el Apps Script) =====
+
+    function abrirModalPendientes() {
+        document.getElementById("pendientesMensaje").textContent = "";
+        document.getElementById("listaPendientes").innerHTML = "";
+        document.getElementById("modalPendientesOverlay").classList.add("activo");
+    }
+
+    function cerrarModalPendientes() {
+        document.getElementById("modalPendientesOverlay").classList.remove("activo");
+    }
+
+    async function cargarPendientes() {
+        const clave = document.getElementById("claveAdmin").value;
+        const mensaje = document.getElementById("pendientesMensaje");
+        const lista = document.getElementById("listaPendientes");
+
+        if (!clave) {
+            mensaje.textContent = "Ingresa la clave de administrador.";
+            return;
+        }
+
+        mensaje.textContent = "Cargando...";
+        lista.innerHTML = "";
+
+        try {
+            const respuesta = await fetch(SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify({ accion: "listar_pendientes", clave: clave })
+            });
+            const datos = await respuesta.json();
+
+            if (!datos.success) {
+                mensaje.textContent = "❌ " + (datos.error || "No se pudo cargar");
+                return;
+            }
+
+            if (!datos.pendientes || datos.pendientes.length === 0) {
+                mensaje.textContent = "No hay solicitudes pendientes por asignar.";
+                return;
+            }
+
+            mensaje.textContent = `${datos.pendientes.length} solicitud(es) pendiente(s):`;
+            renderPendientes(datos.pendientes, clave);
+        } catch (e) {
+            mensaje.textContent = "❌ Error de conexión: " + e.message;
+        }
+    }
+
+    function renderPendientes(pendientes, clave) {
+        const lista = document.getElementById("listaPendientes");
+        lista.innerHTML = "";
+
+        const vehiculosActivos = [...vehiculos]
+            .filter(v => (v.estado || "").toLowerCase() === "activo")
+            .sort((a, b) => a.placa.localeCompare(b.placa));
+
+        pendientes.forEach(p => {
+            const item = document.createElement("div");
+            item.className = "pendiente-item";
+
+            const folio = document.createElement("div");
+            folio.className = "folio";
+            folio.textContent = p.folio;
+            item.appendChild(folio);
+
+            const detalle = document.createElement("div");
+            detalle.className = "detalle";
+            detalle.innerHTML =
+                `<strong>Solicita:</strong> ${p.operador || "--"}<br>` +
+                `<strong>Propósito:</strong> ${p.proposito || "--"}<br>` +
+                `<strong>Nómina:</strong> ${p.nomina || "N/A"} &nbsp; <strong>Fecha:</strong> ${p.fechaHora || "--"}`;
+            item.appendChild(detalle);
+
+            const fila = document.createElement("div");
+            fila.className = "asignar-row";
+
+            const select = document.createElement("select");
+            select.innerHTML = '<option value="">-- Elige un vehículo --</option>' +
+                vehiculosActivos.map(v => `<option value="${v.placa}">${v.placa} - ${v.marca} ${v.modelo}</option>`).join("");
+            fila.appendChild(select);
+
+            const boton = document.createElement("button");
+            boton.textContent = "Asignar";
+            boton.onclick = () => asignarVehiculoAFolio(p.folio, select.value, clave, item);
+            fila.appendChild(boton);
+
+            item.appendChild(fila);
+            lista.appendChild(item);
+        });
+    }
+
+    async function asignarVehiculoAFolio(folio, placa, clave, elementoItem) {
+        if (!placa) {
+            alert("Elige un vehículo antes de asignar.");
+            return;
+        }
+
+        const vehiculo = vehiculos.find(v => v.placa === placa);
+        const responsable = prompt("Tu nombre (queda como responsable de la asignación):", "") || "Admin Flota";
+
+        try {
+            const respuesta = await fetch(SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    accion: "asignar_vehiculo",
+                    clave: clave,
+                    folio: folio,
+                    placa: vehiculo.placa,
+                    vehiculo: `${vehiculo.marca} ${vehiculo.modelo} ${vehiculo.año}`,
+                    responsable: responsable
+                })
+            });
+            const datos = await respuesta.json();
+
+            if (datos.success) {
+                elementoItem.style.opacity = "0.5";
+                elementoItem.innerHTML = `<div class="folio">${folio}</div><div class="detalle">✅ Asignado: ${vehiculo.placa} - ${vehiculo.marca} ${vehiculo.modelo}</div>`;
+            } else {
+                alert("Error: " + (datos.error || "No se pudo asignar"));
+            }
+        } catch (e) {
+            alert("Error de conexión: " + e.message);
+        }
+    }
+
+    document.getElementById("modalPendientesOverlay").addEventListener("click", (e) => {
+        if (e.target.id === "modalPendientesOverlay") cerrarModalPendientes();
     });
 
     logoImg.onload = () => renderGrid();

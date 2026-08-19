@@ -1,0 +1,1648 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel QR - Grupo AM</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        min-height: 100vh;
+        padding: 24px;
+    }
+
+    .wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .panel-header {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        padding: 28px 32px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .panel-header img {
+        width: 64px;
+        height: auto;
+        flex-shrink: 0;
+    }
+
+    .panel-header .titulos h1 {
+        color: #1e3c72;
+        font-size: 22px;
+        font-weight: 700;
+    }
+
+    .panel-header .titulos p {
+        color: #666;
+        font-size: 13px;
+        margin-top: 2px;
+    }
+
+    .aviso {
+        background: #fff8e1;
+        border: 2px solid #f0c14b;
+        color: #7a5c00;
+        border-radius: 10px;
+        padding: 12px 16px;
+        font-size: 13px;
+        margin-bottom: 20px;
+        line-height: 1.5;
+    }
+
+    .toolbar {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        padding: 18px 24px;
+        margin-bottom: 20px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .toolbar input[type="text"] {
+        flex: 1;
+        min-width: 200px;
+        padding: 11px 14px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+
+    .toolbar input[type="text"]:focus {
+        outline: none;
+        border-color: #2a5298;
+    }
+
+    .btn {
+        padding: 11px 18px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .btn-primary { background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%); color: white; }
+    .btn-success { background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: white; }
+    .btn-danger { background: white; color: #dc3545; border: 2px solid #dc3545; }
+    .btn-outline { background: white; color: #2a5298; border: 2px solid #2a5298; }
+    .btn:hover { filter: brightness(1.08); }
+
+    .contador {
+        color: #666;
+        font-size: 13px;
+        margin-bottom: 14px;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 16px;
+    }
+
+    .card {
+        background: white;
+        border-radius: 14px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .card canvas {
+        max-width: 100%;
+        height: auto;
+        margin-bottom: 10px;
+    }
+
+    .card .placa {
+        font-weight: 700;
+        color: #1e3c72;
+        font-size: 16px;
+    }
+
+    .card .modelo {
+        color: #555;
+        font-size: 12.5px;
+        text-align: center;
+        margin-top: 2px;
+    }
+
+    .badge {
+        display: inline-block;
+        margin-top: 8px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .badge.activo { background: #d4edda; color: #155724; }
+    .badge.inactivo { background: #f8d7da; color: #721c24; }
+    .badge.mantenimiento { background: #fff3cd; color: #856404; }
+
+    .card-actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 12px;
+        width: 100%;
+    }
+
+    .card-actions button {
+        flex: 1;
+        padding: 8px 6px;
+        font-size: 12px;
+        border-radius: 7px;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+    }
+
+    .accion-editar { background: #eef2fa; color: #1e3c72; }
+    .accion-descargar { background: #e8f6ee; color: #1e7e34; }
+    .accion-eliminar { background: #fbe9eb; color: #dc3545; }
+
+    .vacio {
+        background: white;
+        border-radius: 14px;
+        padding: 40px;
+        text-align: center;
+        color: #888;
+    }
+
+    /* ===== MODAL ===== */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        z-index: 100;
+    }
+
+    .modal-overlay.activo { display: flex; }
+
+    .modal {
+        background: white;
+        border-radius: 16px;
+        padding: 28px;
+        width: 100%;
+        max-width: 440px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal h2 {
+        color: #1e3c72;
+        font-size: 18px;
+        margin-bottom: 18px;
+    }
+
+    .form-group { margin-bottom: 14px; }
+
+    .form-group label {
+        display: block;
+        color: #1e3c72;
+        font-weight: 600;
+        margin-bottom: 6px;
+        font-size: 13px;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: #2a5298;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .modal-actions button { flex: 1; padding: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+    <div class="panel-header">
+        <img src="logo-am.webp" alt="AM">
+        <div class="titulos">
+            <h1>Panel de Control de QR</h1>
+            <p>Administración de vehículos y códigos QR &mdash; Grupo AM</p>
+        </div>
+    </div>
+
+    <div class="aviso">
+        ⚠️ Los cambios que hagas aquí (editar, eliminar, crear) viven solo en esta pestaña del navegador — se pierden al recargar.
+        Usa <strong>"Exportar vehiculos.json"</strong> cuando termines y comparte ese archivo para aplicar los cambios al sitio real.
+    </div>
+
+    <div class="toolbar">
+        <input type="text" id="buscador" placeholder="🔍 Buscar por placa, marca, modelo o departamento..." oninput="renderGrid()">
+        <button class="btn btn-success" onclick="abrirModalNuevo()">➕ Nuevo vehículo / QR</button>
+        <button class="btn btn-outline" onclick="exportarJSON()">📥 Exportar vehiculos.json</button>
+    </div>
+
+    <p class="contador" id="contador"></p>
+
+    <div class="grid" id="grid"></div>
+    <div class="vacio" id="vacio" style="display:none;">No se encontraron vehículos con ese criterio.</div>
+
+</div>
+
+<!-- MODAL NUEVO / EDITAR -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <h2 id="modalTitulo">Nuevo vehículo</h2>
+        <input type="hidden" id="fId">
+
+        <div class="form-group">
+            <label for="fPlaca">Placa</label>
+            <input type="text" id="fPlaca" placeholder="Ej: GH7799D">
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="fMarca">Marca</label>
+                <input type="text" id="fMarca" placeholder="Ej: NISSAN">
+            </div>
+            <div class="form-group">
+                <label for="fModelo">Modelo</label>
+                <input type="text" id="fModelo" placeholder="Ej: MARCH">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="fAnio">Año</label>
+                <input type="text" id="fAnio" placeholder="Ej: 2024">
+            </div>
+            <div class="form-group">
+                <label for="fTipo">Tipo</label>
+                <input type="text" id="fTipo" list="listaTipos" placeholder="Ej: Automovil">
+                <datalist id="listaTipos">
+                    <option value="Automovil">
+                    <option value="Camioneta">
+                    <option value="Motocicleta">
+                </datalist>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="fEstado">Estado</label>
+                <select id="fEstado">
+                    <option value="Activo">Activo</option>
+                    <option value="Inactivo">Inactivo</option>
+                    <option value="Mantenimiento">Mantenimiento</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="fCombustible">Combustible</label>
+                <input type="text" id="fCombustible" list="listaCombustibles" placeholder="Ej: Gasolina">
+                <datalist id="listaCombustibles">
+                    <option value="Gasolina">
+                    <option value="Diesel">
+                    <option value="Electrico">
+                </datalist>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="fDepartamento">Departamento (flota)</label>
+            <input type="text" id="fDepartamento" list="listaDeptos" placeholder="Ej: EMA">
+            <datalist id="listaDeptos">
+                <option value="Distribuciones">
+                <option value="EMA">
+            </datalist>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
+            <button class="btn btn-success" onclick="guardarVehiculo()">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script>
+    // ===== DATOS INICIALES (copia de vehiculos.json al momento de publicar este panel) =====
+    let vehiculos = [
+  {
+    "id": 1,
+    "placa": "GH7799D",
+    "nombre": "GH7799D",
+    "tipo": "Camioneta",
+    "marca": "PEUGEOUT",
+    "modelo": "PARTNER",
+    "año": 2024,
+    "estado": "Activo",
+    "departamento": "Distribuciones",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 2,
+    "placa": "GE8099D",
+    "nombre": "GE8099D",
+    "tipo": "Camioneta",
+    "marca": "CHEVROLET",
+    "modelo": "TORNADO VAN",
+    "año": 2024,
+    "estado": "Activo",
+    "departamento": "Distribuciones",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 3,
+    "placa": "GU8362C",
+    "nombre": "GU8362C",
+    "tipo": "Camioneta",
+    "marca": "VOLKSWAGEN",
+    "modelo": "SAVEIRO",
+    "año": 2022,
+    "estado": "Activo",
+    "departamento": "Distribuciones",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 4,
+    "placa": "GE8098D",
+    "nombre": "GE8098D",
+    "tipo": "Camioneta",
+    "marca": "CHEVROLET",
+    "modelo": "TORNADO VAN",
+    "año": 2024,
+    "estado": "Activo",
+    "departamento": "Distribuciones",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 5,
+    "placa": "GN4214C",
+    "nombre": "GN4214C",
+    "tipo": "Camioneta",
+    "marca": "VOLKSWAGEN",
+    "modelo": "TRANSPORTER",
+    "año": 2021,
+    "estado": "Inactivo",
+    "departamento": "Distribuciones",
+    "combustible": "Diesel"
+  },
+  {
+    "id": 6,
+    "placa": "78L993",
+    "nombre": "78L993",
+    "tipo": "Automovil",
+    "marca": "BYD",
+    "modelo": "DOLPHIN",
+    "año": 2025,
+    "estado": "Activo",
+    "departamento": "Distribuciones",
+    "combustible": "ELECTRICO"
+  },
+  {
+    "id": 7,
+    "placa": "80L936",
+    "nombre": "80L936",
+    "tipo": "Automovil",
+    "marca": "BYD",
+    "modelo": "DOLPHIN",
+    "año": 2026,
+    "estado": "Activo",
+    "departamento": "Distribuciones",
+    "combustible": "ELECTRICO"
+  },
+  {
+    "id": 8,
+    "placa": "GMK351C",
+    "nombre": "GMK351C",
+    "tipo": "Automovil",
+    "marca": "NISSAN",
+    "modelo": "MARCH",
+    "año": 2012,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 9,
+    "placa": "GPH909C",
+    "nombre": "GPH909C",
+    "tipo": "Automovil",
+    "marca": "VOLKSWAGEN",
+    "modelo": "JETTA",
+    "año": 2017,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 10,
+    "placa": "56EDX3",
+    "nombre": "56EDX3",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2015,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 11,
+    "placa": "54DZE4",
+    "nombre": "54DZE4",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2017,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 12,
+    "placa": "GJT068F",
+    "nombre": "GJT068F",
+    "tipo": "Automovil",
+    "marca": "NISSAN",
+    "modelo": "MARCH",
+    "año": 2018,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 13,
+    "placa": "GPY629F",
+    "nombre": "GPY629F",
+    "tipo": "Automovil",
+    "marca": "NISSAN",
+    "modelo": "MARCH",
+    "año": 2018,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 14,
+    "placa": "GJT069F",
+    "nombre": "GJT069F",
+    "tipo": "Automovil",
+    "marca": "NISSAN",
+    "modelo": "MARCH",
+    "año": 2020,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 15,
+    "placa": "GLX098F",
+    "nombre": "GLX098F",
+    "tipo": "Automovil",
+    "marca": "NISSAN",
+    "modelo": "MARCH",
+    "año": 2018,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 16,
+    "placa": "GGY468G",
+    "nombre": "GGY468G",
+    "tipo": "Automovil",
+    "marca": "NISSAN",
+    "modelo": "MARCH",
+    "año": 2020,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 17,
+    "placa": "GB6788C",
+    "nombre": "GB6788C",
+    "tipo": "Automovil",
+    "marca": "NISSAN",
+    "modelo": "MARCH",
+    "año": 2018,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 18,
+    "placa": "GB6641B",
+    "nombre": "GB6641B",
+    "tipo": "Automovil",
+    "marca": "NISSAN",
+    "modelo": "MARCH",
+    "año": 2018,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 19,
+    "placa": "22EDX3",
+    "nombre": "22EDX3",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2020,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 20,
+    "placa": "38DZE4",
+    "nombre": "38DZE4",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2019,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 21,
+    "placa": "GMK357C",
+    "nombre": "GMK357C",
+    "tipo": "Automovil",
+    "marca": "HONDA",
+    "modelo": "CIVIC",
+    "año": 2015,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 22,
+    "placa": "GMJ900C",
+    "nombre": "GMJ900C",
+    "tipo": "Automovil",
+    "marca": "NISSAN",
+    "modelo": "MARCH",
+    "año": 2015,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 23,
+    "placa": "39DZE4",
+    "nombre": "39DZE4",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2018,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 24,
+    "placa": "57DZE4",
+    "nombre": "57DZE4",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2018,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 25,
+    "placa": "36DZE4",
+    "nombre": "36DZE4",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2016,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 26,
+    "placa": "53MLM2",
+    "nombre": "53MLM2",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2018,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 27,
+    "placa": "GB6787C",
+    "nombre": "GB6787C",
+    "tipo": "Automovil",
+    "marca": "NISSAN",
+    "modelo": "MARCH",
+    "año": 2018,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 28,
+    "placa": "65DZE1",
+    "nombre": "65DZE1",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2016,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 29,
+    "placa": "68DZE1",
+    "nombre": "68DZE1",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2020,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 30,
+    "placa": "H8J46Y",
+    "nombre": "H8J46Y",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2026,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 31,
+    "placa": "22DZE2",
+    "nombre": "22DZE2",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2018,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 32,
+    "placa": "15DZE2",
+    "nombre": "15DZE2",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2018,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 33,
+    "placa": "54EDX3",
+    "nombre": "54EDX3",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2015,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 34,
+    "placa": "52EJG4",
+    "nombre": "52EJG4",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2018,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 35,
+    "placa": "12DZE2",
+    "nombre": "12DZE2",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2019,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 36,
+    "placa": "18DZE2",
+    "nombre": "18DZE2",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2020,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 37,
+    "placa": "97DZE1",
+    "nombre": "97DZE1",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2017,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 38,
+    "placa": "GNL742F",
+    "nombre": "GNL742F",
+    "tipo": "Automovil",
+    "marca": "CHEVROLET",
+    "modelo": "AVEO",
+    "año": 2024,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 39,
+    "placa": "06DZE2",
+    "nombre": "06DZE2",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2016,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 40,
+    "placa": "H5L22C",
+    "nombre": "H5L22C",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2019,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 41,
+    "placa": "34EDX3",
+    "nombre": "34EDX3",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2020,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 42,
+    "placa": "H3C63R",
+    "nombre": "H3C63R",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2025,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 43,
+    "placa": "48EDX3",
+    "nombre": "48EDX3",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2020,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 44,
+    "placa": "GE4288C",
+    "nombre": "GE4288C",
+    "tipo": "Automovil",
+    "marca": "NISSAN",
+    "modelo": "MARCH",
+    "año": 2018,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 45,
+    "placa": "GA3497C",
+    "nombre": "GA3497C",
+    "tipo": "Camioneta",
+    "marca": "NISSAN",
+    "modelo": "NP300",
+    "año": 2014,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 46,
+    "placa": "GR3706D",
+    "nombre": "GR3706D",
+    "tipo": "Camioneta",
+    "marca": "NISSAN",
+    "modelo": "NP300",
+    "año": 2026,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 47,
+    "placa": "GR3707D",
+    "nombre": "GR3707D",
+    "tipo": "Camioneta",
+    "marca": "NISSAN",
+    "modelo": "NP300",
+    "año": 2026,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 48,
+    "placa": "GB6663B",
+    "nombre": "GB6663B",
+    "tipo": "Camioneta",
+    "marca": "VOLKSWAGEN",
+    "modelo": "TRANSPORTER",
+    "año": 2018,
+    "estado": "Inactivo",
+    "departamento": "EMA",
+    "combustible": "Diesel"
+  },
+  {
+    "id": 49,
+    "placa": "GNL743F",
+    "nombre": "GNL743F",
+    "tipo": "Automovil",
+    "marca": "CHEVROLET",
+    "modelo": "AVEO",
+    "año": 2024,
+    "estado": "Inactivo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 50,
+    "placa": "GWK204F",
+    "nombre": "GWK204F",
+    "tipo": "Automovil",
+    "marca": "NISSAN",
+    "modelo": "MARCH",
+    "año": 2019,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 51,
+    "placa": "GNL744F",
+    "nombre": "GNL744F",
+    "tipo": "Automovil",
+    "marca": "CHEVROLET",
+    "modelo": "AVEO",
+    "año": 2024,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 52,
+    "placa": "GMK359C",
+    "nombre": "GMK359C",
+    "tipo": "Camioneta",
+    "marca": "HONDA",
+    "modelo": "CRV",
+    "año": 2015,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 53,
+    "placa": "GRF222C",
+    "nombre": "GRF222C",
+    "tipo": "Automovil",
+    "marca": "NISSAN",
+    "modelo": "TSURU",
+    "año": 2015,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 54,
+    "placa": "GLJ810E",
+    "nombre": "GLJ810E",
+    "tipo": "Automovil",
+    "marca": "NISSAN",
+    "modelo": "TSURU",
+    "año": 2015,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 55,
+    "placa": "48EDZ8",
+    "nombre": "48EDZ8",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2013,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 56,
+    "placa": "52EDZ8",
+    "nombre": "52EDZ8",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2019,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 57,
+    "placa": "52DZE4",
+    "nombre": "52DZE4",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2020,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 58,
+    "placa": "19DZE2",
+    "nombre": "19DZE2",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2018,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 59,
+    "placa": "11DZE2",
+    "nombre": "11DZE2",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2018,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 60,
+    "placa": "H1E84M",
+    "nombre": "H1E84M",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2020,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 61,
+    "placa": "02DZE2",
+    "nombre": "02DZE2",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2020,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 62,
+    "placa": "03DZE2",
+    "nombre": "03DZE2",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2019,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 63,
+    "placa": "16DZE2",
+    "nombre": "16DZE2",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2018,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 64,
+    "placa": "H3C60R",
+    "nombre": "H3C60R",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2025,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 65,
+    "placa": "94MDU9",
+    "nombre": "94MDU9",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2020,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 66,
+    "placa": "94DZE1",
+    "nombre": "94DZE1",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2019,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 67,
+    "placa": "64MBU4",
+    "nombre": "64MBU4",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2018,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 68,
+    "placa": "92DZE1",
+    "nombre": "92DZE1",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2018,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 69,
+    "placa": "H3C62R",
+    "nombre": "H3C62R",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2025,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 70,
+    "placa": "H3C61R",
+    "nombre": "H3C61R",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2025,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 71,
+    "placa": "88MBE7",
+    "nombre": "88MBE7",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2018,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 72,
+    "placa": "43EML4",
+    "nombre": "43EML4",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2015,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 73,
+    "placa": "24DZE2",
+    "nombre": "24DZE2",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2020,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 74,
+    "placa": "27MEU1",
+    "nombre": "27MEU1",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2015,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 75,
+    "placa": "H4L30J",
+    "nombre": "H4L30J",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2026,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 76,
+    "placa": "H4L28J",
+    "nombre": "H4L28J",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2026,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 77,
+    "placa": "H4L29J",
+    "nombre": "H4L29J",
+    "tipo": "Motocicleta",
+    "marca": "HONDA",
+    "modelo": "CARGO 150",
+    "año": 2026,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Gasolina"
+  },
+  {
+    "id": 78,
+    "placa": "80L928",
+    "nombre": "80L928",
+    "tipo": "Automovil",
+    "marca": "BYD",
+    "modelo": "DOLPHIN",
+    "año": 2026,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Electrico"
+  },
+  {
+    "id": 79,
+    "placa": "79L545",
+    "nombre": "79L545",
+    "tipo": "Automovil",
+    "marca": "BYD",
+    "modelo": "DOLPHIN",
+    "año": 2025,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Electrico"
+  },
+  {
+    "id": 80,
+    "placa": "88L382",
+    "nombre": "88L382",
+    "tipo": "Automovil",
+    "marca": "BYD",
+    "modelo": "DOLPHIN",
+    "año": 2026,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Electrico"
+  },
+  {
+    "id": 81,
+    "placa": "88L381",
+    "nombre": "88L381",
+    "tipo": "Automovil",
+    "marca": "BYD",
+    "modelo": "DOLPHIN",
+    "año": 2026,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Electrico"
+  },
+  {
+    "id": 82,
+    "placa": "88L383",
+    "nombre": "88L383",
+    "tipo": "Automovil",
+    "marca": "BYD",
+    "modelo": "DOLPHIN",
+    "año": 2026,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Electrico"
+  },
+  {
+    "id": 83,
+    "placa": "88L384",
+    "nombre": "88L384",
+    "tipo": "Automovil",
+    "marca": "BYD",
+    "modelo": "DOLPHIN",
+    "año": 2026,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Electrico"
+  },
+  {
+    "id": 84,
+    "placa": "73L716",
+    "nombre": "73L716",
+    "tipo": "Automovil",
+    "marca": "JINPENG",
+    "modelo": "LINGBOX",
+    "año": 2023,
+    "estado": "Activo",
+    "departamento": "EMA",
+    "combustible": "Electrico"
+  }
+];
+
+    const URL_BASE = "https://sistema-tickets-flota-m7bl.vercel.app";
+
+    const logoImg = new Image();
+    logoImg.src = "logo-am.webp";
+
+    function siguienteId() {
+        return vehiculos.reduce((max, v) => Math.max(max, v.id || 0), 0) + 1;
+    }
+
+    function vehiculosFiltrados() {
+        const q = document.getElementById("buscador").value.trim().toLowerCase();
+        if (!q) return vehiculos;
+        return vehiculos.filter(v =>
+            (v.placa || "").toLowerCase().includes(q) ||
+            (v.marca || "").toLowerCase().includes(q) ||
+            (v.modelo || "").toLowerCase().includes(q) ||
+            (v.departamento || "").toLowerCase().includes(q)
+        );
+    }
+
+    async function dibujarQR(canvas, vehiculo) {
+        const url = `${URL_BASE}?placa=${encodeURIComponent(vehiculo.placa || "")}`;
+
+        const qrCanvas = document.createElement("canvas");
+        await QRCode.toCanvas(qrCanvas, url, { errorCorrectionLevel: "H", margin: 2, width: 260 });
+
+        const placaTexto = (vehiculo.placa || "").trim();
+        const marcaModelo = `${vehiculo.marca || ""} ${vehiculo.modelo || ""}`.trim();
+
+        const fuentePlaca = "bold 26px Arial";
+        const fuenteDetalle = "18px Arial";
+        const altoPlaca = 30;
+        const altoDetalle = 22;
+        const espacioLineas = 5;
+        const padding = 16;
+
+        const medidor = canvas.getContext("2d");
+        medidor.font = fuentePlaca;
+        const anchoPlaca = medidor.measureText(placaTexto).width;
+        medidor.font = fuenteDetalle;
+        const anchoDetalle = medidor.measureText(marcaModelo).width;
+
+        const altoTexto = marcaModelo ? (altoPlaca + espacioLineas + altoDetalle) : altoPlaca;
+
+        let logoAncho = 0;
+        const logoListo = logoImg.complete && logoImg.naturalWidth > 0;
+        if (logoListo) {
+            logoAncho = Math.round(logoImg.naturalWidth * (altoTexto / logoImg.naturalHeight));
+        }
+
+        const gap = logoListo ? 14 : 0;
+        const anchoTextoMax = Math.max(anchoPlaca, anchoDetalle);
+        const anchoGrupo = logoAncho + gap + anchoTextoMax;
+
+        const anchoFinal = Math.max(qrCanvas.width, Math.ceil(anchoGrupo + padding * 2));
+        const altoLeyenda = padding * 2 + altoTexto;
+
+        canvas.width = anchoFinal;
+        canvas.height = qrCanvas.height + altoLeyenda;
+
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const xQr = Math.round((anchoFinal - qrCanvas.width) / 2);
+        ctx.drawImage(qrCanvas, xQr, 0);
+
+        const xGrupo = Math.round((anchoFinal - anchoGrupo) / 2);
+        let xTexto = xGrupo;
+        const yInicio = qrCanvas.height + padding;
+
+        if (logoListo) {
+            ctx.drawImage(logoImg, xGrupo, yInicio, logoAncho, altoTexto);
+            xTexto = xGrupo + logoAncho + gap;
+        }
+
+        ctx.fillStyle = "#000";
+        ctx.textBaseline = "top";
+        ctx.font = fuentePlaca;
+        ctx.fillText(placaTexto, xTexto, yInicio);
+        if (marcaModelo) {
+            ctx.font = fuenteDetalle;
+            ctx.fillText(marcaModelo, xTexto, yInicio + altoPlaca + espacioLineas);
+        }
+    }
+
+    function claseBadge(estado) {
+        const e = (estado || "").toLowerCase();
+        if (e === "activo") return "activo";
+        if (e === "inactivo") return "inactivo";
+        if (e === "mantenimiento") return "mantenimiento";
+        return "activo";
+    }
+
+    function renderGrid() {
+        const lista = vehiculosFiltrados();
+        const grid = document.getElementById("grid");
+        const vacio = document.getElementById("vacio");
+        const contador = document.getElementById("contador");
+
+        contador.textContent = `${lista.length} de ${vehiculos.length} vehículos`;
+
+        grid.innerHTML = "";
+        vacio.style.display = lista.length === 0 ? "block" : "none";
+
+        lista.forEach(v => {
+            const card = document.createElement("div");
+            card.className = "card";
+
+            const canvas = document.createElement("canvas");
+            card.appendChild(canvas);
+
+            const placa = document.createElement("div");
+            placa.className = "placa";
+            placa.textContent = v.placa || "(sin placa)";
+            card.appendChild(placa);
+
+            const modelo = document.createElement("div");
+            modelo.className = "modelo";
+            modelo.textContent = `${v.marca || ""} ${v.modelo || ""} ${v.año || ""}`.trim();
+            card.appendChild(modelo);
+
+            const badge = document.createElement("span");
+            badge.className = "badge " + claseBadge(v.estado);
+            badge.textContent = v.estado || "Activo";
+            card.appendChild(badge);
+
+            const acciones = document.createElement("div");
+            acciones.className = "card-actions";
+
+            const btnEditar = document.createElement("button");
+            btnEditar.className = "accion-editar";
+            btnEditar.textContent = "✏️ Editar";
+            btnEditar.onclick = () => abrirModalEditar(v.id);
+            acciones.appendChild(btnEditar);
+
+            const btnDescargar = document.createElement("button");
+            btnDescargar.className = "accion-descargar";
+            btnDescargar.textContent = "⬇️ QR";
+            btnDescargar.onclick = () => descargarQR(v, canvas);
+            acciones.appendChild(btnDescargar);
+
+            const btnEliminar = document.createElement("button");
+            btnEliminar.className = "accion-eliminar";
+            btnEliminar.textContent = "🗑️";
+            btnEliminar.onclick = () => eliminarVehiculo(v.id);
+            acciones.appendChild(btnEliminar);
+
+            card.appendChild(acciones);
+            grid.appendChild(card);
+
+            dibujarQR(canvas, v);
+        });
+    }
+
+    function descargarQR(vehiculo, canvas) {
+        canvas.toBlob(blob => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `QR_${vehiculo.placa || vehiculo.id}.png`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }, "image/png");
+    }
+
+    function eliminarVehiculo(id) {
+        const v = vehiculos.find(v => v.id === id);
+        if (!v) return;
+        if (!confirm(`¿Eliminar el vehículo ${v.placa} (${v.marca} ${v.modelo})? Esta acción solo afecta esta sesión del navegador.`)) return;
+        vehiculos = vehiculos.filter(v => v.id !== id);
+        renderGrid();
+    }
+
+    function abrirModalNuevo() {
+        document.getElementById("modalTitulo").textContent = "Nuevo vehículo";
+        document.getElementById("fId").value = "";
+        document.getElementById("fPlaca").value = "";
+        document.getElementById("fMarca").value = "";
+        document.getElementById("fModelo").value = "";
+        document.getElementById("fAnio").value = "";
+        document.getElementById("fTipo").value = "";
+        document.getElementById("fEstado").value = "Activo";
+        document.getElementById("fCombustible").value = "";
+        document.getElementById("fDepartamento").value = "";
+        document.getElementById("modalOverlay").classList.add("activo");
+    }
+
+    function abrirModalEditar(id) {
+        const v = vehiculos.find(v => v.id === id);
+        if (!v) return;
+        document.getElementById("modalTitulo").textContent = `Editar ${v.placa}`;
+        document.getElementById("fId").value = v.id;
+        document.getElementById("fPlaca").value = v.placa || "";
+        document.getElementById("fMarca").value = v.marca || "";
+        document.getElementById("fModelo").value = v.modelo || "";
+        document.getElementById("fAnio").value = v.año || "";
+        document.getElementById("fTipo").value = v.tipo || "";
+        document.getElementById("fEstado").value = v.estado || "Activo";
+        document.getElementById("fCombustible").value = v.combustible || "";
+        document.getElementById("fDepartamento").value = v.departamento || "";
+        document.getElementById("modalOverlay").classList.add("activo");
+    }
+
+    function cerrarModal() {
+        document.getElementById("modalOverlay").classList.remove("activo");
+    }
+
+    function guardarVehiculo() {
+        const placa = document.getElementById("fPlaca").value.trim().toUpperCase();
+        if (!placa) {
+            alert("La placa es obligatoria");
+            return;
+        }
+
+        const idCampo = document.getElementById("fId").value;
+        const esNuevo = idCampo === "";
+
+        if (vehiculos.some(v => v.placa === placa && (esNuevo || v.id !== parseInt(idCampo, 10)))) {
+            alert("Ya existe un vehículo con esa placa");
+            return;
+        }
+
+        const datos = {
+            placa: placa,
+            nombre: placa,
+            tipo: document.getElementById("fTipo").value.trim(),
+            marca: document.getElementById("fMarca").value.trim(),
+            modelo: document.getElementById("fModelo").value.trim(),
+            año: document.getElementById("fAnio").value.trim(),
+            estado: document.getElementById("fEstado").value,
+            departamento: document.getElementById("fDepartamento").value.trim(),
+            combustible: document.getElementById("fCombustible").value.trim()
+        };
+
+        const añoNum = parseInt(datos.año, 10);
+        datos.año = isNaN(añoNum) ? datos.año : añoNum;
+
+        if (esNuevo) {
+            datos.id = siguienteId();
+            vehiculos.push(datos);
+        } else {
+            const id = parseInt(idCampo, 10);
+            const idx = vehiculos.findIndex(v => v.id === id);
+            vehiculos[idx] = { ...vehiculos[idx], ...datos, id };
+        }
+
+        cerrarModal();
+        renderGrid();
+    }
+
+    function exportarJSON() {
+        const ordenado = [...vehiculos].sort((a, b) => a.id - b.id);
+        const blob = new Blob([JSON.stringify(ordenado, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "vehiculos.json";
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    document.getElementById("modalOverlay").addEventListener("click", (e) => {
+        if (e.target.id === "modalOverlay") cerrarModal();
+    });
+
+    logoImg.onload = () => renderGrid();
+    logoImg.onerror = () => renderGrid();
+    window.onload = () => renderGrid();
+</script>
+</body>
+</html>

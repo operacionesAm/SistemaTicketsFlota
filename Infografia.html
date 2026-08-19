@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Guía Rápida de Tickets Vehiculares</title>
+
+<style>
+  :root {
+    --bg: #f1f5f9;
+    --surface: #ffffff;
+    --surface-border: #e2e8f0;
+    --surface-alt-from: #f5f7fa;
+    --surface-alt-to: #eef2f7;
+    --text: #1e293b;
+    --text-muted: #475569;
+    --text-soft: #64748b;
+    --brand-1: #1e3c72;
+    --brand-2: #2a5298;
+    --accent-b: #d35400;
+    --accent-b-soft: #e67e22;
+    --footer-bg: #eef2f7;
+    --dot: #cbd5e1;
+
+    --chip-warn-bg: #fffbeb;    --chip-warn-fg: #b45309;    --chip-warn-line: #f59e0b;
+    --chip-danger-bg: #fef2f2;  --chip-danger-fg: #b91c1c;  --chip-danger-line: #ef4444;
+    --chip-urgent-bg: #fff1f2;  --chip-urgent-fg: #be123c;  --chip-urgent-line: #f43f5e;
+    --chip-success-bg: #ecfdf5; --chip-success-fg: #047857; --chip-success-line: #10b981;
+    --chip-info-bg: #eff6ff;    --chip-info-fg: #1d4ed8;    --chip-info-line: #3b82f6;
+
+    --check-color: #10b981;
+    --card-shadow: 0 20px 50px -22px rgba(30, 60, 114, 0.28), 0 2px 10px rgba(15, 23, 42, 0.06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1526;
+      --surface: #151d34;
+      --surface-border: #283154;
+      --surface-alt-from: #172041;
+      --surface-alt-to: #1b2648;
+      --text: #e7ebf5;
+      --text-muted: #aab4cc;
+      --text-soft: #7c88a8;
+      --accent-b: #f0913f;
+      --accent-b-soft: #f5a35a;
+      --footer-bg: #101a34;
+      --dot: #2a3660;
+
+      --chip-warn-bg: rgba(245, 158, 11, 0.14);    --chip-warn-fg: #fbbf24;
+      --chip-danger-bg: rgba(239, 68, 68, 0.14);   --chip-danger-fg: #f87171;
+      --chip-urgent-bg: rgba(244, 63, 94, 0.14);   --chip-urgent-fg: #fb7185;
+      --chip-success-bg: rgba(16, 185, 129, 0.14); --chip-success-fg: #34d399;
+      --chip-info-bg: rgba(59, 130, 246, 0.14);    --chip-info-fg: #60a5fa;
+
+      --check-color: #34d399;
+      --card-shadow: 0 20px 50px -22px rgba(0, 0, 0, 0.65), 0 2px 10px rgba(0, 0, 0, 0.35);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #0e1526;
+    --surface: #151d34;
+    --surface-border: #283154;
+    --surface-alt-from: #172041;
+    --surface-alt-to: #1b2648;
+    --text: #e7ebf5;
+    --text-muted: #aab4cc;
+    --text-soft: #7c88a8;
+    --accent-b: #f0913f;
+    --accent-b-soft: #f5a35a;
+    --footer-bg: #101a34;
+    --dot: #2a3660;
+
+    --chip-warn-bg: rgba(245, 158, 11, 0.14);    --chip-warn-fg: #fbbf24;
+    --chip-danger-bg: rgba(239, 68, 68, 0.14);   --chip-danger-fg: #f87171;
+    --chip-urgent-bg: rgba(244, 63, 94, 0.14);   --chip-urgent-fg: #fb7185;
+    --chip-success-bg: rgba(16, 185, 129, 0.14); --chip-success-fg: #34d399;
+    --chip-info-bg: rgba(59, 130, 246, 0.14);    --chip-info-fg: #60a5fa;
+
+    --check-color: #34d399;
+    --card-shadow: 0 20px 50px -22px rgba(0, 0, 0, 0.65), 0 2px 10px rgba(0, 0, 0, 0.35);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: clamp(10px, 3vw, 32px);
+    background: var(--bg);
+    background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+    background-size: 20px 20px;
+    color: var(--text);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+  }
+
+  .sheet {
+    width: 100%;
+    max-width: 880px;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 18px;
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+  }
+
+  .icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15em; flex-shrink: 0; }
+
+  /* ===== HEADER ===== */
+  header.hero {
+    position: relative;
+    color: #f4f7ff;
+    background: linear-gradient(135deg, var(--brand-1, #1e3c72) 0%, var(--brand-2, #2a5298) 100%);
+    padding: clamp(20px, 4vw, 34px) clamp(20px, 4vw, 34px);
+    overflow: hidden;
+  }
+
+  header.hero .bg-icon {
+    position: absolute;
+    right: -18px;
+    top: -18px;
+    width: 168px;
+    height: 168px;
+    opacity: 0.1;
+    transform: rotate(-6deg);
+  }
+
+  .print-btn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    font: inherit;
+    font-weight: 700;
+    font-size: 13px;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 9px;
+    backdrop-filter: blur(4px);
+    cursor: pointer;
+  }
+  .print-btn:hover { background: rgba(255, 255, 255, 0.22); }
+  .print-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    margin-bottom: 10px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  header.hero h1 {
+    margin: 0 0 6px;
+    font-size: clamp(20px, 3.4vw, 28px);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    text-wrap: balance;
+    max-width: 30ch;
+  }
+
+  header.hero p {
+    margin: 0;
+    max-width: 46ch;
+    font-size: clamp(13px, 1.6vw, 15px);
+    font-weight: 500;
+    color: #d7e0f5;
+  }
+
+  /* ===== PARA EMPEZAR ===== */
+  .start-banner {
+    margin: 20px clamp(16px, 4vw, 32px) 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 18px;
+    background: var(--text);
+    color: var(--surface);
+    border-radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .start-banner { background: #1c2748; color: #e7ebf5; }
+  }
+  :root[data-theme="dark"] .start-banner { background: #1c2748; color: #e7ebf5; }
+
+  .start-banner .badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
+    font-size: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 11px;
+  }
+
+  .start-banner .eyebrow-sm {
+    margin: 0 0 2px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.65;
+  }
+
+  .start-banner p.msg {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.45;
+  }
+
+  /* ===== FLUJOS ===== */
+  .flows {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    padding: clamp(16px, 4vw, 32px);
+  }
+  @media (max-width: 680px) { .flows { grid-template-columns: 1fr; } }
+
+  .flow-card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px;
+    background: linear-gradient(160deg, var(--surface-alt-from) 0%, var(--surface-alt-to) 100%);
+    border-radius: 14px;
+    border-left: 4px solid var(--flow-accent);
+  }
+  .flow-card.a { --flow-accent: var(--brand-2); }
+  .flow-card.b { --flow-accent: var(--accent-b); }
+
+  .flow-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--flow-accent);
+  }
+  .flow-title .icon { width: 19px; height: 19px; }
+
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .step-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--flow-accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .step p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--text-muted); }
+  .step p strong { color: var(--text); }
+
+  .note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 2px;
+    padding: 10px 12px;
+    background: color-mix(in srgb, var(--surface) 65%, transparent);
+    border: 1px solid color-mix(in srgb, var(--flow-accent) 25%, transparent);
+    border-radius: 9px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted);
+  }
+  .note .icon { color: var(--flow-accent); margin-top: 2px; }
+  .note strong { color: var(--text); }
+
+  /* ===== TIPOS DE INCIDENCIA ===== */
+  .section-heading {
+    margin: 0 0 12px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--surface-border);
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .incidencias-wrap { padding: 0 clamp(16px, 4vw, 32px) 6px; }
+
+  .chips {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+  @media (max-width: 680px) { .chips { grid-template-columns: repeat(2, 1fr); } }
+
+  .chip {
+    padding: 11px;
+    background: var(--chip-bg);
+    border-left: 4px solid var(--chip-line);
+    border-radius: 0 9px 9px 0;
+  }
+  .chip .icon { width: 16px; height: 16px; display: block; margin-bottom: 6px; color: var(--chip-line); }
+  .chip p { margin: 0; font-size: 11.5px; font-weight: 700; line-height: 1.3; color: var(--chip-fg); }
+
+  .chip.warn    { --chip-bg: var(--chip-warn-bg);    --chip-line: var(--chip-warn-line, #f59e0b);    --chip-fg: var(--chip-warn-fg); }
+  .chip.danger  { --chip-bg: var(--chip-danger-bg);  --chip-line: var(--chip-danger-line, #ef4444);  --chip-fg: var(--chip-danger-fg); }
+  .chip.urgent  { --chip-bg: var(--chip-urgent-bg);  --chip-line: var(--chip-urgent-line, #f43f5e);  --chip-fg: var(--chip-urgent-fg); }
+  .chip.success { --chip-bg: var(--chip-success-bg); --chip-line: var(--chip-success-line, #10b981); --chip-fg: var(--chip-success-fg); }
+  .chip.info    { --chip-bg: var(--chip-info-bg);    --chip-line: var(--chip-info-line, #3b82f6);    --chip-fg: var(--chip-info-fg); }
+
+  /* ===== TEN ESTO A LA MANO + FOLIO ===== */
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: clamp(16px, 4vw, 32px);
+    padding-top: 18px;
+  }
+  @media (max-width: 680px) { .bottom-grid { grid-template-columns: 1fr; } }
+
+  .checklist-card {
+    padding: 16px;
+    background: var(--bg);
+    border: 1px solid var(--surface-border);
+    border-radius: 14px;
+  }
+  .checklist-card .title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 10px;
+    font-size: 13.5px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .checklist-card .title .icon { color: var(--text-soft); }
+
+  .checklist-card ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+  .checklist-card li { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--text-muted); }
+  .checklist-card li .icon { color: var(--check-color); width: 14px; height: 14px; }
+
+  .folio-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 16px 18px;
+    border-radius: 14px;
+    color: #f4f7ff;
+    background: linear-gradient(135deg, var(--brand-1, #1e3c72) 0%, var(--brand-2, #2a5298) 100%);
+  }
+  .folio-card .title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 6px;
+    font-size: 13.5px;
+    font-weight: 800;
+  }
+  .folio-card p.msg { margin: 0; font-size: 12.5px; line-height: 1.55; color: #d7e0f5; }
+  .folio-card code {
+    padding: 1px 7px;
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  /* ===== FOOTER ===== */
+  footer.foot {
+    padding: 15px;
+    text-align: center;
+    background: var(--footer-bg);
+    border-top: 1px solid var(--surface-border);
+  }
+  footer.foot p { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+
+  /* ===== PRINT ===== */
+  @media print {
+    body { background: #fff; padding: 0; }
+    .no-print { display: none !important; }
+    .sheet { box-shadow: none; border: none; max-width: 100%; border-radius: 0; }
+  }
+</style>
+</head>
+<body>
+
+<svg style="position:absolute; width:0; height:0; overflow:hidden;" aria-hidden="true">
+  <symbol id="i-print" viewBox="0 0 24 24">
+    <path d="M6 9V2h12v7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="6" y="14" width="12" height="8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="i-car" viewBox="0 0 24 24">
+    <path d="M5 11l1.6-4.6A2 2 0 0 1 8.5 5h7a2 2 0 0 1 1.9 1.4L19 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="3" y="11" width="18" height="6" rx="2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    <circle cx="7.5" cy="17.3" r="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+    <circle cx="16.5" cy="17.3" r="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+  </symbol>
+  <symbol id="i-qr" viewBox="0 0 24 24">
+    <rect x="3" y="3" width="7" height="7" fill="currentColor"/>
+    <rect x="14" y="3" width="7" height="7" fill="currentColor"/>
+    <rect x="3" y="14" width="7" height="7" fill="currentColor"/>
+    <rect x="14" y="14" width="3" height="3" fill="currentColor"/>
+    <rect x="18" y="14" width="3" height="3" fill="currentColor"/>
+    <rect x="14" y="18" width="3" height="3" fill="currentColor"/>
+    <rect x="18" y="18" width="3" height="3" fill="currentColor"/>
+  </symbol>
+  <symbol id="i-mobile" viewBox="0 0 24 24">
+    <rect x="6" y="2" width="12" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    <line x1="10.5" y1="18" x2="13.5" y2="18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24">
+    <path d="M12 3 2 20h20L12 3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    <line x1="12" y1="10" x2="12" y2="14.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    <circle cx="12" cy="17" r="0.9" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="i-info" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/>
+    <line x1="12" y1="11" x2="12" y2="16.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    <circle cx="12" cy="7.7" r="0.9" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="i-wrench" viewBox="0 0 24 24">
+    <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.8 2.8-2-2 2.8-2.8z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-octagon" viewBox="0 0 24 24">
+    <path d="M8 2h8l6 6v8l-6 6H8l-6-6V8l6-6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    <line x1="12" y1="8" x2="12" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    <circle cx="12" cy="16" r="0.9" fill="currentColor" stroke="none"/>
+  </symbol>
+  <symbol id="i-medical" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/>
+    <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-cal-check" viewBox="0 0 24 24">
+    <rect x="3" y="4.5" width="18" height="16.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    <line x1="3" y1="9.5" x2="21" y2="9.5" stroke="currentColor" stroke-width="1.8"/>
+    <line x1="8" y1="2.5" x2="8" y2="6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="16" y1="2.5" x2="16" y2="6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M8 14.5l2.4 2.4L16 11.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/>
+    <path d="M19.4 13a7.97 7.97 0 0 0 0-2l2-1.5-2-3.4-2.4 1a8 8 0 0 0-1.7-1L14.9 3h-4l-.4 2.9a8 8 0 0 0-1.7 1l-2.4-1-2 3.4L6.4 11a8 8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a8 8 0 0 0 1.7 1L10.9 21h4l.4-2.9a8 8 0 0 0 1.7-1l2.4 1 2-3.4L19.4 13z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="i-clipboard" viewBox="0 0 24 24">
+    <rect x="6" y="4" width="12" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    <rect x="9" y="2" width="6" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    <line x1="9" y1="11" x2="15" y2="11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    <line x1="9" y1="15" x2="15" y2="15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    <line x1="9" y1="19" x2="13" y2="19" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-check" viewBox="0 0 24 24">
+    <polyline points="20 6 9 17 4 12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="i-hash" viewBox="0 0 24 24">
+    <line x1="9" y1="3" x2="7" y2="21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="17" y1="3" x2="15" y2="21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="4" y1="9" x2="21" y2="9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="3" y1="15" x2="20" y2="15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  </symbol>
+</svg>
+
+<main class="sheet">
+
+  <button class="print-btn no-print" onclick="window.print()" type="button" aria-label="Imprimir o guardar como PDF">
+    <svg class="icon" width="15" height="15"><use href="#i-print"></use></svg>
+    <span>Imprimir / PDF</span>
+  </button>
+
+  <header class="hero">
+    <svg class="icon bg-icon" aria-hidden="true"><use href="#i-qr"></use></svg>
+    <div class="eyebrow">
+      <svg class="icon" width="13" height="13"><use href="#i-car"></use></svg>
+      Grupo AM
+    </div>
+    <h1>Sistema de Tickets Vehiculares</h1>
+    <p>Pide un vehículo o reporta una incidencia en menos de un minuto, escaneando el QR.</p>
+  </header>
+
+  <div class="start-banner">
+    <div class="badge">
+      <svg class="icon" width="22" height="22"><use href="#i-mobile"></use></svg>
+    </div>
+    <div>
+      <p class="eyebrow-sm">Para empezar</p>
+      <p class="msg">Escanea el código QR del vehículo (o el QR general) con la cámara de tu celular y elige qué necesitas hacer.</p>
+    </div>
+  </div>
+
+  <div class="flows">
+
+    <section class="flow-card a">
+      <div class="flow-title">
+        <svg class="icon" width="19" height="19"><use href="#i-car"></use></svg>
+        Pedir un vehículo
+      </div>
+
+      <div class="step">
+        <span class="step-num">1</span>
+        <p>Toca <strong>«Pedir un vehículo»</strong>. Si escaneaste el QR de una unidad específica, sus datos se cargan solos.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">2</span>
+        <p>Llena tu nombre, departamento, <strong>número de nómina</strong>, correo y el destino o propósito del viaje.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">3</span>
+        <p>Envía y guarda tu <strong>folio</strong>. Si no tenías vehículo asignado, Flota te avisará por correo en cuanto te asigne uno.</p>
+      </div>
+
+      <div class="note">
+        <svg class="icon" width="14" height="14"><use href="#i-info"></use></svg>
+        <span>El número de nómina es <strong>obligatorio</strong> para pedir un vehículo.</span>
+      </div>
+    </section>
+
+    <section class="flow-card b">
+      <div class="flow-title">
+        <svg class="icon" width="19" height="19"><use href="#i-warn"></use></svg>
+        Levantar un ticket
+      </div>
+
+      <div class="step">
+        <span class="step-num">1</span>
+        <p>Toca <strong>«Levantar ticket»</strong> y selecciona el vehículo con la incidencia: escanea su QR o elígelo de la lista.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">2</span>
+        <p>Llena tu nombre, departamento y correo. Elige el <strong>tipo de incidencia</strong> y describe qué pasó.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">3</span>
+        <p>Envía y guarda tu <strong>folio</strong>. Te avisaremos por correo cuando haya novedades en tu reporte.</p>
+      </div>
+
+      <div class="note">
+        <svg class="icon" width="14" height="14"><use href="#i-info"></use></svg>
+        <span>El número de nómina es <strong>opcional</strong> aquí; el correo sigue siendo obligatorio.</span>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="incidencias-wrap">
+    <h2 class="section-heading">Tipos de incidencia</h2>
+    <div class="chips">
+      <div class="chip warn">
+        <svg class="icon"><use href="#i-wrench"></use></svg>
+        <p>Falla / Problema</p>
+      </div>
+      <div class="chip danger">
+        <svg class="icon"><use href="#i-octagon"></use></svg>
+        <p>Siniestro</p>
+      </div>
+      <div class="chip urgent">
+        <svg class="icon"><use href="#i-medical"></use></svg>
+        <p>Asistencia Urgente</p>
+      </div>
+      <div class="chip success">
+        <svg class="icon"><use href="#i-cal-check"></use></svg>
+        <p>Mtto. Preventivo</p>
+      </div>
+      <div class="chip info">
+        <svg class="icon"><use href="#i-gear"></use></svg>
+        <p>Mtto. Correctivo</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-grid">
+    <div class="checklist-card">
+      <p class="title">
+        <svg class="icon" width="16" height="16"><use href="#i-clipboard"></use></svg>
+        Ten esto a la mano
+      </p>
+      <ul>
+        <li><svg class="icon"><use href="#i-check"></use></svg> Nombre completo y departamento</li>
+        <li><svg class="icon"><use href="#i-check"></use></svg> Correo electrónico (recibirás tu folio ahí)</li>
+        <li><svg class="icon"><use href="#i-check"></use></svg> Número de nómina (si vas a pedir vehículo)</li>
+        <li><svg class="icon"><use href="#i-check"></use></svg> Descripción clara del problema (si es reporte)</li>
+      </ul>
+    </div>
+
+    <div class="folio-card">
+      <p class="title">
+        <svg class="icon" width="15" height="15"><use href="#i-hash"></use></svg>
+        Guarda tu folio
+      </p>
+      <p class="msg">Al enviar tu solicitud o reporte recibirás un folio <code>TKT-XXXXXXXX</code> por correo. Úsalo para dar seguimiento a tu ticket.</p>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <p>¿Dudas o problemas con el escaneo? Contacta al Administrador de Flota.</p>
+  </footer>
+
+</main>
+
+</body>
+</html>

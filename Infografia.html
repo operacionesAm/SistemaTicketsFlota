@@ -30,6 +30,7 @@
 
     --check-color: #10b981;
     --card-shadow: 0 20px 50px -22px rgba(30, 60, 114, 0.28), 0 2px 10px rgba(15, 23, 42, 0.06);
+    --hover-shadow: 0 16px 32px -18px rgba(15, 23, 42, 0.32);
   }
 
   @media (prefers-color-scheme: dark) {
@@ -55,6 +56,7 @@
 
       --check-color: #34d399;
       --card-shadow: 0 20px 50px -22px rgba(0, 0, 0, 0.65), 0 2px 10px rgba(0, 0, 0, 0.35);
+      --hover-shadow: 0 16px 32px -18px rgba(0, 0, 0, 0.6);
     }
   }
 
@@ -80,6 +82,7 @@
 
     --check-color: #34d399;
     --card-shadow: 0 20px 50px -22px rgba(0, 0, 0, 0.65), 0 2px 10px rgba(0, 0, 0, 0.35);
+    --hover-shadow: 0 16px 32px -18px rgba(0, 0, 0, 0.6);
   }
 
   * { box-sizing: border-box; }
@@ -107,6 +110,33 @@
   }
 
   .icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.15em; flex-shrink: 0; }
+
+  /* ===== ENTRANCE ANIMATION (respects reduced motion) ===== */
+  @media (prefers-reduced-motion: no-preference) {
+    .anim {
+      opacity: 0;
+      animation: rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation-delay: var(--d, 0s);
+    }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    header.hero .bg-icon { animation: drift 50s linear infinite; }
+    @keyframes drift {
+      from { transform: rotate(-6deg); }
+      to   { transform: rotate(354deg); }
+    }
+  }
+
+  /* ===== HOVER LIFT (shared) ===== */
+  .flow-card, .checklist-card, .folio-card, .acc {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .flow-card:hover, .checklist-card:hover, .folio-card:hover, .acc:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--hover-shadow);
+  }
 
   /* ===== HEADER ===== */
   header.hero {
@@ -145,8 +175,9 @@
     border-radius: 9px;
     backdrop-filter: blur(4px);
     cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
   }
-  .print-btn:hover { background: rgba(255, 255, 255, 0.22); }
+  .print-btn:hover { background: rgba(255, 255, 255, 0.22); transform: translateY(-1px); }
   .print-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
   .eyebrow {
@@ -299,7 +330,7 @@
 
   /* ===== TIPOS DE INCIDENCIA ===== */
   .section-heading {
-    margin: 0 0 12px;
+    margin: 0 0 4px;
     padding-bottom: 10px;
     border-bottom: 2px solid var(--surface-border);
     font-size: 14px;
@@ -308,29 +339,102 @@
     text-transform: uppercase;
   }
 
+  .section-hint {
+    margin: 8px 0 14px;
+    font-size: 12px;
+    color: var(--text-soft);
+  }
+
   .incidencias-wrap { padding: 0 clamp(16px, 4vw, 32px) 6px; }
 
-  .chips {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 10px;
-  }
-  @media (max-width: 680px) { .chips { grid-template-columns: repeat(2, 1fr); } }
+  .acc-list { display: flex; flex-direction: column; gap: 10px; }
 
-  .chip {
-    padding: 11px;
+  .acc {
+    border-radius: 12px;
     background: var(--chip-bg);
-    border-left: 4px solid var(--chip-line);
-    border-radius: 0 9px 9px 0;
+    border: 1px solid color-mix(in srgb, var(--chip-line) 28%, transparent);
+    overflow: hidden;
   }
-  .chip .icon { width: 16px; height: 16px; display: block; margin-bottom: 6px; color: var(--chip-line); }
-  .chip p { margin: 0; font-size: 11.5px; font-weight: 700; line-height: 1.3; color: var(--chip-fg); }
 
-  .chip.warn    { --chip-bg: var(--chip-warn-bg);    --chip-line: var(--chip-warn-line, #f59e0b);    --chip-fg: var(--chip-warn-fg); }
-  .chip.danger  { --chip-bg: var(--chip-danger-bg);  --chip-line: var(--chip-danger-line, #ef4444);  --chip-fg: var(--chip-danger-fg); }
-  .chip.urgent  { --chip-bg: var(--chip-urgent-bg);  --chip-line: var(--chip-urgent-line, #f43f5e);  --chip-fg: var(--chip-urgent-fg); }
-  .chip.success { --chip-bg: var(--chip-success-bg); --chip-line: var(--chip-success-line, #10b981); --chip-fg: var(--chip-success-fg); }
-  .chip.info    { --chip-bg: var(--chip-info-bg);    --chip-line: var(--chip-info-line, #3b82f6);    --chip-fg: var(--chip-info-fg); }
+  .acc.warn    { --chip-bg: var(--chip-warn-bg);    --chip-line: var(--chip-warn-line);    --chip-fg: var(--chip-warn-fg); }
+  .acc.danger  { --chip-bg: var(--chip-danger-bg);  --chip-line: var(--chip-danger-line);  --chip-fg: var(--chip-danger-fg); }
+  .acc.urgent  { --chip-bg: var(--chip-urgent-bg);  --chip-line: var(--chip-urgent-line);  --chip-fg: var(--chip-urgent-fg); }
+  .acc.success { --chip-bg: var(--chip-success-bg); --chip-line: var(--chip-success-line); --chip-fg: var(--chip-success-fg); }
+  .acc.info    { --chip-bg: var(--chip-info-bg);    --chip-line: var(--chip-info-line);    --chip-fg: var(--chip-info-fg); }
+
+  .acc-head {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 12px 14px;
+    background: transparent;
+    border: none;
+    border-left: 4px solid var(--chip-line);
+    font: inherit;
+    text-align: left;
+    color: inherit;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .acc-head:hover { background: color-mix(in srgb, var(--chip-line) 12%, transparent); }
+  .acc-head:focus-visible { outline: 2px solid var(--chip-line); outline-offset: -2px; }
+
+  .acc-head .cat-icon { width: 17px; height: 17px; color: var(--chip-line); flex-shrink: 0; }
+
+  .acc-titles { flex: 1; min-width: 0; }
+  .acc-name { display: block; font-size: 13px; font-weight: 800; color: var(--chip-fg); }
+  .acc-count { display: block; margin-top: 1px; font-size: 11px; font-weight: 600; color: var(--text-soft); }
+
+  .acc-chevron {
+    width: 16px;
+    height: 16px;
+    color: var(--chip-line);
+    flex-shrink: 0;
+    transition: transform 0.25s ease;
+  }
+  .acc[data-open="true"] .acc-chevron { transform: rotate(180deg); }
+
+  .acc-panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s ease;
+  }
+  .acc[data-open="true"] .acc-panel { grid-template-rows: 1fr; }
+  .acc-panel-inner { overflow: hidden; }
+
+  .tip-list { padding: 2px 14px 12px; }
+
+  .tip-row {
+    display: grid;
+    grid-template-columns: 76px 1fr;
+    gap: 3px 12px;
+    padding: 8px 0;
+    border-top: 1px solid color-mix(in srgb, var(--chip-line) 20%, transparent);
+  }
+  .tip-row:first-child { border-top: none; }
+
+  .tip-code {
+    align-self: start;
+    height: fit-content;
+    padding: 2px 6px;
+    background: var(--surface);
+    border-radius: 5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--chip-fg);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tip-name { display: block; font-size: 12.5px; font-weight: 700; color: var(--text); }
+  .tip-desc { display: block; margin-top: 1px; font-size: 11.5px; line-height: 1.42; color: var(--text-muted); }
+
+  @media (max-width: 480px) {
+    .tip-row { grid-template-columns: 1fr; }
+    .tip-code { width: fit-content; }
+  }
 
   /* ===== TEN ESTO A LA MANO + FOLIO ===== */
   .bottom-grid {
@@ -402,6 +506,11 @@
     body { background: #fff; padding: 0; }
     .no-print { display: none !important; }
     .sheet { box-shadow: none; border: none; max-width: 100%; border-radius: 0; }
+    .acc-panel { grid-template-rows: 1fr !important; }
+    .acc-panel-inner { overflow: visible !important; }
+    .acc-chevron { display: none; }
+    .acc-head { cursor: default; }
+    .acc, .flow-card, .checklist-card, .folio-card { break-inside: avoid; }
   }
 </style>
 </head>
@@ -482,6 +591,9 @@
     <line x1="4" y1="9" x2="21" y2="9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
     <line x1="3" y1="15" x2="20" y2="15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
   </symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24">
+    <polyline points="6 9 12 15 18 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
 </svg>
 
 <main class="sheet">
@@ -491,7 +603,7 @@
     <span>Imprimir / PDF</span>
   </button>
 
-  <header class="hero">
+  <header class="hero anim" style="--d:0s">
     <svg class="icon bg-icon" aria-hidden="true"><use href="#i-qr"></use></svg>
     <div class="eyebrow">
       <svg class="icon" width="13" height="13"><use href="#i-car"></use></svg>
@@ -501,7 +613,7 @@
     <p>Pide un vehículo o reporta una incidencia en menos de un minuto, escaneando el QR.</p>
   </header>
 
-  <div class="start-banner">
+  <div class="start-banner anim" style="--d:0.08s">
     <div class="badge">
       <svg class="icon" width="22" height="22"><use href="#i-mobile"></use></svg>
     </div>
@@ -513,7 +625,7 @@
 
   <div class="flows">
 
-    <section class="flow-card a">
+    <section class="flow-card a anim" style="--d:0.14s">
       <div class="flow-title">
         <svg class="icon" width="19" height="19"><use href="#i-car"></use></svg>
         Pedir un vehículo
@@ -538,7 +650,7 @@
       </div>
     </section>
 
-    <section class="flow-card b">
+    <section class="flow-card b anim" style="--d:0.2s">
       <div class="flow-title">
         <svg class="icon" width="19" height="19"><use href="#i-warn"></use></svg>
         Levantar un ticket
@@ -566,33 +678,137 @@
   </div>
 
   <div class="incidencias-wrap">
-    <h2 class="section-heading">Tipos de incidencia</h2>
-    <div class="chips">
-      <div class="chip warn">
-        <svg class="icon"><use href="#i-wrench"></use></svg>
-        <p>Falla / Problema</p>
+    <h2 class="section-heading anim" style="--d:0.26s">Tipos de incidencia</h2>
+    <p class="section-hint anim" style="--d:0.28s">Toca una categoría para ver el detalle y su clave (TIP-XX.X).</p>
+
+    <div class="acc-list">
+
+      <div class="acc warn anim" style="--d:0.3s" data-open="false">
+        <button class="acc-head" type="button" aria-expanded="false" aria-controls="p-01" onclick="toggleAcc(this)">
+          <svg class="icon cat-icon"><use href="#i-wrench"></use></svg>
+          <span class="acc-titles">
+            <span class="acc-name">Falla / Problema</span>
+            <span class="acc-count">10 tipos &middot; TIP-01</span>
+          </span>
+          <svg class="icon acc-chevron"><use href="#i-chevron"></use></svg>
+        </button>
+        <div class="acc-panel">
+          <div class="acc-panel-inner">
+            <div class="tip-list" id="p-01">
+              <div class="tip-row"><span class="tip-code">TIP-01.1</span><div><span class="tip-name">Motor no enciende</span><span class="tip-desc">El vehículo no arranca al intentar encenderlo.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-01.2</span><div><span class="tip-name">Sobrecalentamiento de motor</span><span class="tip-desc">Temperatura del motor por encima de lo normal.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-01.3</span><div><span class="tip-name">Falla de frenos</span><span class="tip-desc">Frenado deficiente, ruido o vibración al frenar.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-01.4</span><div><span class="tip-name">Falla eléctrica</span><span class="tip-desc">Luces, tablero o arranque eléctrico no funcionan.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-01.5</span><div><span class="tip-name">Batería descargada</span><span class="tip-desc">El vehículo no enciende por falta de carga (fuera de ruta).</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-01.6</span><div><span class="tip-name">Desgaste o daño de llantas</span><span class="tip-desc">Desgaste irregular o daño visible sin ser ponchadura en ruta.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-01.7</span><div><span class="tip-name">Falla de transmisión</span><span class="tip-desc">Dificultad para cambiar de velocidad o fuga de aceite.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-01.8</span><div><span class="tip-name">Falla de suspensión</span><span class="tip-desc">Ruidos o vibraciones anormales al circular.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-01.9</span><div><span class="tip-name">Aire acondicionado / calefacción</span><span class="tip-desc">El sistema climático no enfría ni calienta.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-01.10</span><div><span class="tip-name">Testigo de falla en tablero</span><span class="tip-desc">Indicador de advertencia encendido en el tablero.</span></div></div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="chip danger">
-        <svg class="icon"><use href="#i-octagon"></use></svg>
-        <p>Siniestro</p>
+
+      <div class="acc danger anim" style="--d:0.34s" data-open="false">
+        <button class="acc-head" type="button" aria-expanded="false" aria-controls="p-02" onclick="toggleAcc(this)">
+          <svg class="icon cat-icon"><use href="#i-octagon"></use></svg>
+          <span class="acc-titles">
+            <span class="acc-name">Siniestro</span>
+            <span class="acc-count">9 tipos &middot; TIP-02</span>
+          </span>
+          <svg class="icon acc-chevron"><use href="#i-chevron"></use></svg>
+        </button>
+        <div class="acc-panel">
+          <div class="acc-panel-inner">
+            <div class="tip-list" id="p-02">
+              <div class="tip-row"><span class="tip-code">TIP-02.1</span><div><span class="tip-name">Colisión con otro vehículo</span><span class="tip-desc">Impacto entre la unidad y otro vehículo.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-02.2</span><div><span class="tip-name">Colisión con objeto fijo</span><span class="tip-desc">Impacto contra poste, muro, barrera u otro objeto.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-02.3</span><div><span class="tip-name">Volcadura</span><span class="tip-desc">El vehículo se voltea total o parcialmente.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-02.4</span><div><span class="tip-name">Daño por fenómeno natural</span><span class="tip-desc">Granizo, inundación u otro evento climático.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-02.5</span><div><span class="tip-name">Robo total</span><span class="tip-desc">Sustracción completa del vehículo.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-02.6</span><div><span class="tip-name">Robo parcial</span><span class="tip-desc">Sustracción de autopartes o pertenencias del vehículo.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-02.7</span><div><span class="tip-name">Vandalismo</span><span class="tip-desc">Daño intencional causado por terceros.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-02.8</span><div><span class="tip-name">Incendio del vehículo</span><span class="tip-desc">El vehículo se incendia parcial o totalmente.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-02.9</span><div><span class="tip-name">Atropellamiento</span><span class="tip-desc">El vehículo golpea a una persona o animal.</span></div></div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="chip urgent">
-        <svg class="icon"><use href="#i-medical"></use></svg>
-        <p>Asistencia Urgente</p>
+
+      <div class="acc urgent anim" style="--d:0.38s" data-open="false">
+        <button class="acc-head" type="button" aria-expanded="false" aria-controls="p-03" onclick="toggleAcc(this)">
+          <svg class="icon cat-icon"><use href="#i-medical"></use></svg>
+          <span class="acc-titles">
+            <span class="acc-name">Asistencia Urgente</span>
+            <span class="acc-count">6 tipos &middot; TIP-03</span>
+          </span>
+          <svg class="icon acc-chevron"><use href="#i-chevron"></use></svg>
+        </button>
+        <div class="acc-panel">
+          <div class="acc-panel-inner">
+            <div class="tip-list" id="p-03">
+              <div class="tip-row"><span class="tip-code">TIP-03.1</span><div><span class="tip-name">Ponchadura en ruta</span><span class="tip-desc">Llanta ponchada durante la operación, sin poder continuar.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-03.2</span><div><span class="tip-name">Sin combustible</span><span class="tip-desc">El vehículo se queda sin combustible en ruta.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-03.3</span><div><span class="tip-name">No enciende en ruta</span><span class="tip-desc">Batería descargada o falla de arranque durante el trayecto.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-03.4</span><div><span class="tip-name">Sobrecalentamiento en ruta</span><span class="tip-desc">El motor se sobrecalienta y obliga a detener la unidad.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-03.5</span><div><span class="tip-name">Vehículo varado</span><span class="tip-desc">La unidad queda inmovilizada por falla mecánica en ruta.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-03.6</span><div><span class="tip-name">Requiere grúa</span><span class="tip-desc">La unidad no puede continuar y necesita arrastre.</span></div></div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="chip success">
-        <svg class="icon"><use href="#i-cal-check"></use></svg>
-        <p>Mtto. Preventivo</p>
+
+      <div class="acc success anim" style="--d:0.42s" data-open="false">
+        <button class="acc-head" type="button" aria-expanded="false" aria-controls="p-04" onclick="toggleAcc(this)">
+          <svg class="icon cat-icon"><use href="#i-cal-check"></use></svg>
+          <span class="acc-titles">
+            <span class="acc-name">Mantenimiento Preventivo</span>
+            <span class="acc-count">6 tipos &middot; TIP-04</span>
+          </span>
+          <svg class="icon acc-chevron"><use href="#i-chevron"></use></svg>
+        </button>
+        <div class="acc-panel">
+          <div class="acc-panel-inner">
+            <div class="tip-list" id="p-04">
+              <div class="tip-row"><span class="tip-code">TIP-04.1</span><div><span class="tip-name">Cambio de aceite y filtro</span><span class="tip-desc">Servicio programado por kilometraje o tiempo.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-04.2</span><div><span class="tip-name">Revisión y ajuste de frenos</span><span class="tip-desc">Inspección programada del sistema de frenos.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-04.3</span><div><span class="tip-name">Rotación de llantas</span><span class="tip-desc">Rotación programada para desgaste uniforme.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-04.4</span><div><span class="tip-name">Afinación mayor o menor</span><span class="tip-desc">Servicio programado de afinación del motor.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-04.5</span><div><span class="tip-name">Revisión de niveles de líquidos</span><span class="tip-desc">Chequeo programado de aceite, refrigerante y otros.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-04.6</span><div><span class="tip-name">Verificación vehicular</span><span class="tip-desc">Revisión física o documental programada por normativa.</span></div></div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="chip info">
-        <svg class="icon"><use href="#i-gear"></use></svg>
-        <p>Mtto. Correctivo</p>
+
+      <div class="acc info anim" style="--d:0.46s" data-open="false">
+        <button class="acc-head" type="button" aria-expanded="false" aria-controls="p-05" onclick="toggleAcc(this)">
+          <svg class="icon cat-icon"><use href="#i-gear"></use></svg>
+          <span class="acc-titles">
+            <span class="acc-name">Mantenimiento Correctivo</span>
+            <span class="acc-count">5 tipos &middot; TIP-05</span>
+          </span>
+          <svg class="icon acc-chevron"><use href="#i-chevron"></use></svg>
+        </button>
+        <div class="acc-panel">
+          <div class="acc-panel-inner">
+            <div class="tip-list" id="p-05">
+              <div class="tip-row"><span class="tip-code">TIP-05.1</span><div><span class="tip-name">Reemplazo de pieza dañada</span><span class="tip-desc">Sustitución de una pieza tras diagnóstico técnico.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-05.2</span><div><span class="tip-name">Reparación de sistema eléctrico</span><span class="tip-desc">Corrección de una falla eléctrica ya diagnosticada.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-05.3</span><div><span class="tip-name">Reparación de transmisión</span><span class="tip-desc">Corrección de una falla de transmisión ya diagnosticada.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-05.4</span><div><span class="tip-name">Reparación de frenos</span><span class="tip-desc">Corrección de una falla de frenos ya diagnosticada.</span></div></div>
+              <div class="tip-row"><span class="tip-code">TIP-05.5</span><div><span class="tip-name">Reparación de carrocería</span><span class="tip-desc">Reparación de daño físico no derivado de un siniestro.</span></div></div>
+            </div>
+          </div>
+        </div>
       </div>
+
     </div>
   </div>
 
   <div class="bottom-grid">
-    <div class="checklist-card">
+    <div class="checklist-card anim" style="--d:0.5s">
       <p class="title">
         <svg class="icon" width="16" height="16"><use href="#i-clipboard"></use></svg>
         Ten esto a la mano
@@ -605,7 +821,7 @@
       </ul>
     </div>
 
-    <div class="folio-card">
+    <div class="folio-card anim" style="--d:0.54s">
       <p class="title">
         <svg class="icon" width="15" height="15"><use href="#i-hash"></use></svg>
         Guarda tu folio
@@ -614,11 +830,22 @@
     </div>
   </div>
 
-  <footer class="foot">
+  <footer class="foot anim" style="--d:0.58s">
     <p>¿Dudas o problemas con el escaneo? Contacta al Administrador de Flota.</p>
   </footer>
 
 </main>
+
+<script>
+  function toggleAcc(btn) {
+    var acc = btn.closest(".acc");
+    var panel = acc.querySelector(".acc-panel");
+    var isOpen = acc.getAttribute("data-open") === "true";
+    acc.setAttribute("data-open", String(!isOpen));
+    btn.setAttribute("aria-expanded", String(!isOpen));
+    panel.setAttribute("aria-hidden", String(isOpen));
+  }
+</script>
 
 </body>
 </html>

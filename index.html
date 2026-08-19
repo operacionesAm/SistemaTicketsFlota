@@ -481,8 +481,8 @@
             </div>
 
             <div class="form-group">
-                <label for="correoSolicitante" id="labelCorreo">📧 Correo electrónico</label>
-                <input type="email" id="correoSolicitante" placeholder="Ej: nombre@am.com.mx">
+                <label for="correoSolicitante">📧 Correo electrónico</label>
+                <input type="email" id="correoSolicitante" placeholder="Ej: nombre@am.com.mx" required>
             </div>
 
             <h2 id="tituloFormulario"></h2>
@@ -679,11 +679,8 @@
             const esObligatoria = tipo === "asignacion";
             input.required = esObligatoria;
             label.textContent = esObligatoria ? "🪪 Número de nómina" : "🪪 Número de nómina (opcional)";
-
-            const inputCorreo = document.getElementById("correoSolicitante");
-            const labelCorreo = document.getElementById("labelCorreo");
-            inputCorreo.required = esObligatoria;
-            labelCorreo.textContent = esObligatoria ? "📧 Correo electrónico" : "📧 Correo electrónico (opcional)";
+            // El correo es obligatorio siempre (Asignación y Reporte), para poder avisar
+            // por email cualquier cambio de estatus del ticket, no solo la asignación de vehículo.
         }
 
         function mostrarVehiculo(vehicle) {
@@ -886,13 +883,13 @@
                 return;
             }
 
-            if (tipoActual === "asignacion" && !numeroNomina) {
-                showError("El número de nómina es obligatorio para pedir un vehículo");
+            if (!correoSolicitante) {
+                showError("El correo electrónico es obligatorio para poder avisarte el estatus de tu ticket");
                 return;
             }
 
-            if (tipoActual === "asignacion" && !correoSolicitante) {
-                showError("El correo electrónico es obligatorio para pedir un vehículo");
+            if (tipoActual === "asignacion" && !numeroNomina) {
+                showError("El número de nómina es obligatorio para pedir un vehículo");
                 return;
             }
 

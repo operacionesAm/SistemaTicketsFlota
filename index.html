@@ -310,8 +310,22 @@
         }
 
         /* ===== SELECTOR DE VEHÍCULO ===== */
+        #selectorScreen,
         #mainContent {
             display: none;
+        }
+
+        .btn-reporte {
+            background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+            box-shadow: 0 4px 12px rgba(230, 126, 34, 0.25);
+        }
+
+        #tituloFormulario {
+            display: none;
+            color: #1e3c72;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 18px;
         }
 
         .selector-intro {
@@ -390,9 +404,18 @@
         <div id="successMsg" class="message success"></div>
         <div id="errorMsg" class="message error"></div>
 
-        <!-- SELECTOR DE VEHÍCULO (QR universal) -->
+        <!-- SELECTOR DE INTENCIÓN (QR universal) -->
+        <div id="intentScreen">
+            <p class="selector-intro">¿Qué necesitas hacer?</p>
+
+            <button class="submit-btn" onclick="elegirIntento('asignacion')" style="margin-bottom: 14px;">🚗 Pedir un vehículo</button>
+            <button class="submit-btn btn-reporte" onclick="elegirIntento('reporte')">🎫 Levantar ticket</button>
+        </div>
+
+        <!-- SELECTOR DE VEHÍCULO (para "Levantar ticket" desde el QR universal) -->
         <div id="selectorScreen">
-            <p class="selector-intro">Selecciona tu vehículo para continuar</p>
+            <button class="change-vehicle-btn" onclick="volverAIntent()">‹ Volver</button>
+            <p class="selector-intro">Selecciona el vehículo con la incidencia</p>
 
             <button class="submit-btn" id="scanBtn" onclick="iniciarEscaneo()">📷 Escanear QR del vehículo</button>
 
@@ -413,10 +436,10 @@
 
         <!-- CONTENIDO PRINCIPAL -->
         <div id="mainContent">
-            <button class="change-vehicle-btn" onclick="cambiarVehiculo()">↺ Cambiar vehículo</button>
+            <button class="change-vehicle-btn" onclick="cambiarVehiculo()">↺ Empezar de nuevo</button>
 
             <!-- INFORMACIÓN DEL VEHÍCULO -->
-            <div class="vehicle-info">
+            <div class="vehicle-info" id="vehicleInfoPanel">
                 <h3>📋 Información del Vehículo</h3>
                 <p><strong>Placa:</strong> <span id="vehiclePlaca">Cargando...</span></p>
                 <p><strong>Modelo:</strong> <span id="vehicleModel">--</span></p>
@@ -452,8 +475,15 @@
                 </select>
             </div>
 
+            <div class="form-group">
+                <label for="numeroNomina">🪪 Número de nómina (opcional)</label>
+                <input type="text" id="numeroNomina" placeholder="Ej: 12345">
+            </div>
+
+            <h2 id="tituloFormulario"></h2>
+
             <!-- TOGGLE ASIGNACIÓN/REPORTE -->
-            <div class="toggle-group">
+            <div class="toggle-group" id="toggleGroup">
                 <button class="toggle-btn active" onclick="toggleType('asignacion')">✅ Asignación</button>
                 <button class="toggle-btn" onclick="toggleType('reporte')">⚠️ Reporte</button>
             </div>
@@ -519,6 +549,7 @@
         let tipoActual = "asignacion";
         let vehicleData = null;
         let html5QrCode = null;
+        let modoFlujo = "universal"; // "directo" (QR de un vehículo) | "universalReporte" | "universalSolicitud"
         
         // Cargar vehículos (incrustados aquí)
         const VEHICULOS = [
@@ -631,6 +662,11 @@
             });
         }
 
+        function mostrarSeccionFormulario(tipo) {
+            document.getElementById("formAsignacion").classList.toggle("active", tipo === "asignacion");
+            document.getElementById("formReporte").classList.toggle("active", tipo === "reporte");
+        }
+
         function mostrarVehiculo(vehicle) {
             vehicleData = vehicle;
             document.getElementById("vehiclePlaca").textContent = vehicle.placa;
@@ -638,11 +674,63 @@
             document.getElementById("vehicleYear").textContent = vehicle.año;
             document.getElementById("vehicleEstado").textContent = vehicle.estado;
             document.getElementById("vehicleDept").textContent = vehicle.departamento;
+            document.getElementById("vehicleInfoPanel").style.display = "block";
 
             history.replaceState(null, "", "?placa=" + encodeURIComponent(vehicle.placa));
 
+            const esDirecto = modoFlujo === "directo";
+            const tituloFormulario = document.getElementById("tituloFormulario");
+            document.getElementById("toggleGroup").style.display = esDirecto ? "grid" : "none";
+
+            if (esDirecto) {
+                tituloFormulario.style.display = "none";
+                tipoActual = "asignacion";
+                document.querySelectorAll(".toggle-btn").forEach((btn, i) => btn.classList.toggle("active", i === 0));
+                mostrarSeccionFormulario("asignacion");
+            } else {
+                tituloFormulario.textContent = tipoActual === "asignacion" ? "🚗 Pedir un vehículo" : "🎫 Levantar ticket";
+                tituloFormulario.style.display = "block";
+                mostrarSeccionFormulario(tipoActual);
+            }
+
+            document.getElementById("intentScreen").style.display = "none";
             document.getElementById("selectorScreen").style.display = "none";
             document.getElementById("mainContent").style.display = "block";
+        }
+
+        function mostrarSolicitudGenerica() {
+            vehicleData = null;
+            document.getElementById("vehicleInfoPanel").style.display = "none";
+            document.getElementById("toggleGroup").style.display = "none";
+
+            const tituloFormulario = document.getElementById("tituloFormulario");
+            tituloFormulario.textContent = "🚗 Pedir un vehículo";
+            tituloFormulario.style.display = "block";
+            mostrarSeccionFormulario("asignacion");
+
+            history.replaceState(null, "", window.location.pathname);
+
+            document.getElementById("intentScreen").style.display = "none";
+            document.getElementById("selectorScreen").style.display = "none";
+            document.getElementById("mainContent").style.display = "block";
+        }
+
+        function elegirIntento(tipo) {
+            tipoActual = tipo;
+            if (tipo === "reporte") {
+                modoFlujo = "universalReporte";
+                document.getElementById("intentScreen").style.display = "none";
+                document.getElementById("selectorScreen").style.display = "block";
+            } else {
+                modoFlujo = "universalSolicitud";
+                mostrarSolicitudGenerica();
+            }
+        }
+
+        function volverAIntent() {
+            detenerEscaneo();
+            document.getElementById("selectorScreen").style.display = "none";
+            document.getElementById("intentScreen").style.display = "block";
         }
 
         function onPlacaSelect(placa) {
@@ -706,29 +794,23 @@
         function cambiarVehiculo() {
             detenerEscaneo();
             vehicleData = null;
+            modoFlujo = "universal";
             history.replaceState(null, "", window.location.pathname);
 
             document.getElementById("mainContent").style.display = "none";
+            document.getElementById("selectorScreen").style.display = "none";
             document.getElementById("successDiv").classList.remove("active");
-            document.getElementById("selectorScreen").style.display = "block";
+            document.getElementById("intentScreen").style.display = "block";
         }
-        
+
         function toggleType(type) {
             tipoActual = type;
-            
+
             // Actualizar botones
             document.querySelectorAll(".toggle-btn").forEach(btn => btn.classList.remove("active"));
             event.target.classList.add("active");
-            
-            // Mostrar/ocultar formularios
-            document.getElementById("formAsignacion").classList.remove("active");
-            document.getElementById("formReporte").classList.remove("active");
-            
-            if (type === "asignacion") {
-                document.getElementById("formAsignacion").classList.add("active");
-            } else {
-                document.getElementById("formReporte").classList.add("active");
-            }
+
+            mostrarSeccionFormulario(type);
         }
         
         function showMessage(type, message) {
@@ -761,14 +843,17 @@
         }
         
         function submitForm() {
+            const esGenerico = modoFlujo === "universalSolicitud";
+
             // Validar datos
-            if (!vehicleData) {
+            if (!esGenerico && !vehicleData) {
                 showError("Error: Vehículo no cargado");
                 return;
             }
 
             const nombreSolicitante = document.getElementById("nombreSolicitante").value.trim();
             const departamentoSolicitante = document.getElementById("departamentoSolicitante").value;
+            const numeroNomina = document.getElementById("numeroNomina").value.trim();
 
             if (!nombreSolicitante || !departamentoSolicitante) {
                 showError("Por favor identifica quién levanta el ticket (nombre y departamento)");
@@ -777,10 +862,11 @@
 
             const formData = {
                 tipo: tipoActual,
-                placa: vehicleData.placa,
-                vehiculo: `${vehicleData.marca} ${vehicleData.modelo} ${vehicleData.año}`,
+                placa: esGenerico ? "Sin asignar" : vehicleData.placa,
+                vehiculo: esGenerico ? "Por asignar" : `${vehicleData.marca} ${vehicleData.modelo} ${vehicleData.año}`,
                 operador: nombreSolicitante,
-                departamentoSolicitante: departamentoSolicitante
+                departamentoSolicitante: departamentoSolicitante,
+                numeroNomina: numeroNomina
             };
 
             if (tipoActual === "asignacion") {
@@ -837,9 +923,11 @@
             if (placa) {
                 const vehicle = buscarVehiculoPorPlaca(placa);
                 if (vehicle) {
+                    modoFlujo = "directo";
                     mostrarVehiculo(vehicle);
                 } else {
                     showError("Vehículo no encontrado: " + placa);
+                    document.getElementById("intentScreen").style.display = "block";
                 }
             }
         };

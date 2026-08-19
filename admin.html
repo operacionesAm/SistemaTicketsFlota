@@ -1394,69 +1394,85 @@
         );
     }
 
+    // Estas constantes deben coincidir con generar_qrs_menu.py para que el QR impreso y el
+    // QR del panel sean pixel-idénticos: 530x650 siempre, sin importar el largo del texto.
+    const ANCHO_QR = 530;
+    const TAMAÑO_FUENTE_PLACA = 34;
+    const TAMAÑO_FUENTE_DETALLE = 24;
+    const ALTO_LINEA_PLACA = 42;
+    const ALTO_LINEA_DETALLE = 30;
+    const ESPACIO_LINEAS = 8;
+    const PADDING_LEYENDA = 20;
+    const ESPACIO_LOGO = 14;
+    const TAMAÑO_FUENTE_MINIMO = 11;
+
+    function fuenteQueEncaje(ctx, texto, tamañoInicial, anchoMax, negrita) {
+        let tamaño = tamañoInicial;
+        if (!texto) return `${negrita ? "bold " : ""}${tamaño}px Arial`;
+        while (tamaño > TAMAÑO_FUENTE_MINIMO) {
+            ctx.font = `${negrita ? "bold " : ""}${tamaño}px Arial`;
+            if (ctx.measureText(texto).width <= anchoMax) break;
+            tamaño -= 1;
+        }
+        return `${negrita ? "bold " : ""}${tamaño}px Arial`;
+    }
+
     async function dibujarQR(canvas, vehiculo) {
         const url = `${URL_BASE}?placa=${encodeURIComponent(vehiculo.placa || "")}`;
 
         const qrCanvas = document.createElement("canvas");
-        await QRCode.toCanvas(qrCanvas, url, { errorCorrectionLevel: "H", margin: 2, width: 260 });
+        await QRCode.toCanvas(qrCanvas, url, { errorCorrectionLevel: "H", version: 7, margin: 2, width: ANCHO_QR });
 
         const placaTexto = (vehiculo.placa || "").trim();
         const marcaModelo = `${vehiculo.marca || ""} ${vehiculo.modelo || ""}`.trim();
 
-        const fuentePlaca = "bold 26px Arial";
-        const fuenteDetalle = "18px Arial";
-        const altoPlaca = 30;
-        const altoDetalle = 22;
-        const espacioLineas = 5;
-        const padding = 16;
-
-        const medidor = canvas.getContext("2d");
-        medidor.font = fuentePlaca;
-        const anchoPlaca = medidor.measureText(placaTexto).width;
-        medidor.font = fuenteDetalle;
-        const anchoDetalle = medidor.measureText(marcaModelo).width;
-
-        const altoTexto = marcaModelo ? (altoPlaca + espacioLineas + altoDetalle) : altoPlaca;
-
-        let logoAncho = 0;
+        const ctx = canvas.getContext("2d");
         const logoListo = logoImg.complete && logoImg.naturalWidth > 0;
-        if (logoListo) {
-            logoAncho = Math.round(logoImg.naturalWidth * (altoTexto / logoImg.naturalHeight));
-        }
+        const altoLogo = ALTO_LINEA_PLACA + ESPACIO_LINEAS + ALTO_LINEA_DETALLE;
+        const logoAncho = logoListo ? Math.round(logoImg.naturalWidth * (altoLogo / logoImg.naturalHeight)) : 0;
 
-        const gap = logoListo ? 14 : 0;
-        const anchoTextoMax = Math.max(anchoPlaca, anchoDetalle);
-        const anchoGrupo = logoAncho + gap + anchoTextoMax;
+        const gap = logoListo ? ESPACIO_LOGO : 0;
+        const anchoDisponibleTexto = ANCHO_QR - PADDING_LEYENDA * 2 - logoAncho - gap;
 
-        const anchoFinal = Math.max(qrCanvas.width, Math.ceil(anchoGrupo + padding * 2));
-        const altoLeyenda = padding * 2 + altoTexto;
+        const fontPlaca = fuenteQueEncaje(ctx, placaTexto, TAMAÑO_FUENTE_PLACA, anchoDisponibleTexto, true);
+        const fontDetalle = fuenteQueEncaje(ctx, marcaModelo, TAMAÑO_FUENTE_DETALLE, anchoDisponibleTexto, false);
 
-        canvas.width = anchoFinal;
+        ctx.font = fontPlaca;
+        const anchoPlaca = placaTexto ? ctx.measureText(placaTexto).width : 0;
+        ctx.font = fontDetalle;
+        const anchoDetalle = marcaModelo ? ctx.measureText(marcaModelo).width : 0;
+
+        // Alto de leyenda SIEMPRE fijo: el lienzo final termina midiendo lo mismo para cualquier vehículo.
+        const altoLeyenda = PADDING_LEYENDA * 2 + ALTO_LINEA_PLACA + ESPACIO_LINEAS + ALTO_LINEA_DETALLE;
+
+        canvas.width = ANCHO_QR;
         canvas.height = qrCanvas.height + altoLeyenda;
 
-        const ctx = canvas.getContext("2d");
         ctx.fillStyle = "#fff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(qrCanvas, 0, 0);
 
-        const xQr = Math.round((anchoFinal - qrCanvas.width) / 2);
-        ctx.drawImage(qrCanvas, xQr, 0);
+        const anchoTextoMax = Math.max(anchoPlaca, anchoDetalle);
+        const anchoGrupo = logoAncho + gap + anchoTextoMax;
+        const xGrupo = Math.max(PADDING_LEYENDA, Math.round((ANCHO_QR - anchoGrupo) / 2));
 
-        const xGrupo = Math.round((anchoFinal - anchoGrupo) / 2);
+        const yInicio = qrCanvas.height + PADDING_LEYENDA;
         let xTexto = xGrupo;
-        const yInicio = qrCanvas.height + padding;
 
         if (logoListo) {
-            ctx.drawImage(logoImg, xGrupo, yInicio, logoAncho, altoTexto);
+            ctx.drawImage(logoImg, xGrupo, yInicio, logoAncho, altoLogo);
             xTexto = xGrupo + logoAncho + gap;
         }
 
         ctx.fillStyle = "#000";
         ctx.textBaseline = "top";
-        ctx.font = fuentePlaca;
-        ctx.fillText(placaTexto, xTexto, yInicio);
+        if (placaTexto) {
+            ctx.font = fontPlaca;
+            ctx.fillText(placaTexto, xTexto, yInicio);
+        }
         if (marcaModelo) {
-            ctx.font = fuenteDetalle;
-            ctx.fillText(marcaModelo, xTexto, yInicio + altoPlaca + espacioLineas);
+            ctx.font = fontDetalle;
+            ctx.fillText(marcaModelo, xTexto, yInicio + ALTO_LINEA_PLACA + ESPACIO_LINEAS);
         }
     }
 

@@ -186,6 +186,60 @@
         color: #888;
     }
 
+    /* ===== ACCESO (clave de administrador) ===== */
+    .gate-overlay {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        z-index: 200;
+    }
+
+    .gate-box {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        padding: 32px;
+        width: 100%;
+        max-width: 360px;
+        text-align: center;
+    }
+
+    .gate-box img { width: 64px; margin-bottom: 12px; }
+
+    .gate-box h2 {
+        color: #1e3c72;
+        font-size: 19px;
+        margin-bottom: 6px;
+    }
+
+    .gate-box p {
+        color: #666;
+        font-size: 13px;
+        margin-bottom: 18px;
+    }
+
+    .gate-box input {
+        width: 100%;
+        padding: 11px 14px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        margin-bottom: 12px;
+        text-align: center;
+    }
+
+    .gate-box input:focus { outline: none; border-color: #2a5298; }
+
+    .gate-error {
+        color: #dc3545;
+        font-size: 13px;
+        margin-bottom: 12px;
+    }
+
     /* ===== MODAL ===== */
     .modal-overlay {
         display: none;
@@ -304,7 +358,19 @@
 </style>
 </head>
 <body>
-<div class="wrap">
+
+<div class="gate-overlay" id="gateOverlay">
+    <div class="gate-box">
+        <img src="logo-am.webp" alt="AM">
+        <h2>Panel de Control de QR</h2>
+        <p>Ingresa la clave de administrador para continuar.</p>
+        <input type="password" id="gateClave" placeholder="Clave" autocomplete="off">
+        <p class="gate-error" id="gateError" style="display:none;"></p>
+        <button class="btn btn-primary" style="width:100%;" id="gateBtn" onclick="intentarEntrar()">Entrar</button>
+    </div>
+</div>
+
+<div class="wrap" id="panelPrincipal" style="display:none;">
 
     <div class="panel-header">
         <img src="logo-am.webp" alt="AM">
@@ -341,21 +407,12 @@
             Tickets de "Pedir un vehículo" que aún no tienen unidad asignada (placa = "Sin asignar" en la hoja ASIGNACIONES).
         </p>
 
-        <div class="form-row" style="align-items:end;">
-            <div class="form-group">
-                <label for="claveAdmin">Clave de administrador</label>
-                <input type="password" id="claveAdmin" placeholder="Clave">
-            </div>
-            <div class="form-group">
-                <button class="btn btn-primary" style="width:100%;" onclick="cargarPendientes()">🔄 Cargar solicitudes</button>
-            </div>
-        </div>
-
         <p id="pendientesMensaje" style="font-size:13px; margin-bottom:10px;"></p>
         <div id="listaPendientes"></div>
 
         <div class="modal-actions">
-            <button class="btn btn-outline" style="flex:none; width:100%;" onclick="cerrarModalPendientes()">Cerrar</button>
+            <button class="btn btn-outline" onclick="cargarPendientes()">🔄 Actualizar</button>
+            <button class="btn btn-outline" onclick="cerrarModalPendientes()">Cerrar</button>
         </div>
     </div>
 </div>
@@ -436,1020 +493,85 @@
 
 <script src="qrcode.min.js"></script>
 <script>
-    // ===== DATOS INICIALES (copia de vehiculos.json al momento de publicar este panel) =====
-    let vehiculos = [
-  {
-    "id": 1,
-    "placa": "GH7799D",
-    "nombre": "GH7799D",
-    "tipo": "Camioneta",
-    "marca": "PEUGEOUT",
-    "modelo": "PARTNER",
-    "año": 2024,
-    "estado": "Activo",
-    "departamento": "Distribuciones",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 2,
-    "placa": "GE8099D",
-    "nombre": "GE8099D",
-    "tipo": "Camioneta",
-    "marca": "CHEVROLET",
-    "modelo": "TORNADO VAN",
-    "año": 2024,
-    "estado": "Activo",
-    "departamento": "Distribuciones",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 3,
-    "placa": "GU8362C",
-    "nombre": "GU8362C",
-    "tipo": "Camioneta",
-    "marca": "VOLKSWAGEN",
-    "modelo": "SAVEIRO",
-    "año": 2022,
-    "estado": "Activo",
-    "departamento": "Distribuciones",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 4,
-    "placa": "GE8098D",
-    "nombre": "GE8098D",
-    "tipo": "Camioneta",
-    "marca": "CHEVROLET",
-    "modelo": "TORNADO VAN",
-    "año": 2024,
-    "estado": "Activo",
-    "departamento": "Distribuciones",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 5,
-    "placa": "GN4214C",
-    "nombre": "GN4214C",
-    "tipo": "Camioneta",
-    "marca": "VOLKSWAGEN",
-    "modelo": "TRANSPORTER",
-    "año": 2021,
-    "estado": "Inactivo",
-    "departamento": "Distribuciones",
-    "combustible": "Diesel"
-  },
-  {
-    "id": 6,
-    "placa": "78L993",
-    "nombre": "78L993",
-    "tipo": "Automovil",
-    "marca": "BYD",
-    "modelo": "DOLPHIN",
-    "año": 2025,
-    "estado": "Activo",
-    "departamento": "Distribuciones",
-    "combustible": "ELECTRICO"
-  },
-  {
-    "id": 7,
-    "placa": "80L936",
-    "nombre": "80L936",
-    "tipo": "Automovil",
-    "marca": "BYD",
-    "modelo": "DOLPHIN",
-    "año": 2026,
-    "estado": "Activo",
-    "departamento": "Distribuciones",
-    "combustible": "ELECTRICO"
-  },
-  {
-    "id": 8,
-    "placa": "GMK351C",
-    "nombre": "GMK351C",
-    "tipo": "Automovil",
-    "marca": "NISSAN",
-    "modelo": "MARCH",
-    "año": 2012,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 9,
-    "placa": "GPH909C",
-    "nombre": "GPH909C",
-    "tipo": "Automovil",
-    "marca": "VOLKSWAGEN",
-    "modelo": "JETTA",
-    "año": 2017,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 10,
-    "placa": "56EDX3",
-    "nombre": "56EDX3",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2015,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 11,
-    "placa": "54DZE4",
-    "nombre": "54DZE4",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2017,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 12,
-    "placa": "GJT068F",
-    "nombre": "GJT068F",
-    "tipo": "Automovil",
-    "marca": "NISSAN",
-    "modelo": "MARCH",
-    "año": 2018,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 13,
-    "placa": "GPY629F",
-    "nombre": "GPY629F",
-    "tipo": "Automovil",
-    "marca": "NISSAN",
-    "modelo": "MARCH",
-    "año": 2018,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 14,
-    "placa": "GJT069F",
-    "nombre": "GJT069F",
-    "tipo": "Automovil",
-    "marca": "NISSAN",
-    "modelo": "MARCH",
-    "año": 2020,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 15,
-    "placa": "GLX098F",
-    "nombre": "GLX098F",
-    "tipo": "Automovil",
-    "marca": "NISSAN",
-    "modelo": "MARCH",
-    "año": 2018,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 16,
-    "placa": "GGY468G",
-    "nombre": "GGY468G",
-    "tipo": "Automovil",
-    "marca": "NISSAN",
-    "modelo": "MARCH",
-    "año": 2020,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 17,
-    "placa": "GB6788C",
-    "nombre": "GB6788C",
-    "tipo": "Automovil",
-    "marca": "NISSAN",
-    "modelo": "MARCH",
-    "año": 2018,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 18,
-    "placa": "GB6641B",
-    "nombre": "GB6641B",
-    "tipo": "Automovil",
-    "marca": "NISSAN",
-    "modelo": "MARCH",
-    "año": 2018,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 19,
-    "placa": "22EDX3",
-    "nombre": "22EDX3",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2020,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 20,
-    "placa": "38DZE4",
-    "nombre": "38DZE4",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2019,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 21,
-    "placa": "GMK357C",
-    "nombre": "GMK357C",
-    "tipo": "Automovil",
-    "marca": "HONDA",
-    "modelo": "CIVIC",
-    "año": 2015,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 22,
-    "placa": "GMJ900C",
-    "nombre": "GMJ900C",
-    "tipo": "Automovil",
-    "marca": "NISSAN",
-    "modelo": "MARCH",
-    "año": 2015,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 23,
-    "placa": "39DZE4",
-    "nombre": "39DZE4",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2018,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 24,
-    "placa": "57DZE4",
-    "nombre": "57DZE4",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2018,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 25,
-    "placa": "36DZE4",
-    "nombre": "36DZE4",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2016,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 26,
-    "placa": "53MLM2",
-    "nombre": "53MLM2",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2018,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 27,
-    "placa": "GB6787C",
-    "nombre": "GB6787C",
-    "tipo": "Automovil",
-    "marca": "NISSAN",
-    "modelo": "MARCH",
-    "año": 2018,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 28,
-    "placa": "65DZE1",
-    "nombre": "65DZE1",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2016,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 29,
-    "placa": "68DZE1",
-    "nombre": "68DZE1",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2020,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 30,
-    "placa": "H8J46Y",
-    "nombre": "H8J46Y",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2026,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 31,
-    "placa": "22DZE2",
-    "nombre": "22DZE2",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2018,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 32,
-    "placa": "15DZE2",
-    "nombre": "15DZE2",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2018,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 33,
-    "placa": "54EDX3",
-    "nombre": "54EDX3",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2015,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 34,
-    "placa": "52EJG4",
-    "nombre": "52EJG4",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2018,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 35,
-    "placa": "12DZE2",
-    "nombre": "12DZE2",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2019,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 36,
-    "placa": "18DZE2",
-    "nombre": "18DZE2",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2020,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 37,
-    "placa": "97DZE1",
-    "nombre": "97DZE1",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2017,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 38,
-    "placa": "GNL742F",
-    "nombre": "GNL742F",
-    "tipo": "Automovil",
-    "marca": "CHEVROLET",
-    "modelo": "AVEO",
-    "año": 2024,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 39,
-    "placa": "06DZE2",
-    "nombre": "06DZE2",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2016,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 40,
-    "placa": "H5L22C",
-    "nombre": "H5L22C",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2019,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 41,
-    "placa": "34EDX3",
-    "nombre": "34EDX3",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2020,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 42,
-    "placa": "H3C63R",
-    "nombre": "H3C63R",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2025,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 43,
-    "placa": "48EDX3",
-    "nombre": "48EDX3",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2020,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 44,
-    "placa": "GE4288C",
-    "nombre": "GE4288C",
-    "tipo": "Automovil",
-    "marca": "NISSAN",
-    "modelo": "MARCH",
-    "año": 2018,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 45,
-    "placa": "GA3497C",
-    "nombre": "GA3497C",
-    "tipo": "Camioneta",
-    "marca": "NISSAN",
-    "modelo": "NP300",
-    "año": 2014,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 46,
-    "placa": "GR3706D",
-    "nombre": "GR3706D",
-    "tipo": "Camioneta",
-    "marca": "NISSAN",
-    "modelo": "NP300",
-    "año": 2026,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 47,
-    "placa": "GR3707D",
-    "nombre": "GR3707D",
-    "tipo": "Camioneta",
-    "marca": "NISSAN",
-    "modelo": "NP300",
-    "año": 2026,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 48,
-    "placa": "GB6663B",
-    "nombre": "GB6663B",
-    "tipo": "Camioneta",
-    "marca": "VOLKSWAGEN",
-    "modelo": "TRANSPORTER",
-    "año": 2018,
-    "estado": "Inactivo",
-    "departamento": "EMA",
-    "combustible": "Diesel"
-  },
-  {
-    "id": 49,
-    "placa": "GNL743F",
-    "nombre": "GNL743F",
-    "tipo": "Automovil",
-    "marca": "CHEVROLET",
-    "modelo": "AVEO",
-    "año": 2024,
-    "estado": "Inactivo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 50,
-    "placa": "GWK204F",
-    "nombre": "GWK204F",
-    "tipo": "Automovil",
-    "marca": "NISSAN",
-    "modelo": "MARCH",
-    "año": 2019,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 51,
-    "placa": "GNL744F",
-    "nombre": "GNL744F",
-    "tipo": "Automovil",
-    "marca": "CHEVROLET",
-    "modelo": "AVEO",
-    "año": 2024,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 52,
-    "placa": "GMK359C",
-    "nombre": "GMK359C",
-    "tipo": "Camioneta",
-    "marca": "HONDA",
-    "modelo": "CRV",
-    "año": 2015,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 53,
-    "placa": "GRF222C",
-    "nombre": "GRF222C",
-    "tipo": "Automovil",
-    "marca": "NISSAN",
-    "modelo": "TSURU",
-    "año": 2015,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 54,
-    "placa": "GLJ810E",
-    "nombre": "GLJ810E",
-    "tipo": "Automovil",
-    "marca": "NISSAN",
-    "modelo": "TSURU",
-    "año": 2015,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 55,
-    "placa": "48EDZ8",
-    "nombre": "48EDZ8",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2013,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 56,
-    "placa": "52EDZ8",
-    "nombre": "52EDZ8",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2019,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 57,
-    "placa": "52DZE4",
-    "nombre": "52DZE4",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2020,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 58,
-    "placa": "19DZE2",
-    "nombre": "19DZE2",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2018,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 59,
-    "placa": "11DZE2",
-    "nombre": "11DZE2",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2018,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 60,
-    "placa": "H1E84M",
-    "nombre": "H1E84M",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2020,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 61,
-    "placa": "02DZE2",
-    "nombre": "02DZE2",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2020,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 62,
-    "placa": "03DZE2",
-    "nombre": "03DZE2",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2019,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 63,
-    "placa": "16DZE2",
-    "nombre": "16DZE2",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2018,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 64,
-    "placa": "H3C60R",
-    "nombre": "H3C60R",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2025,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 65,
-    "placa": "94MDU9",
-    "nombre": "94MDU9",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2020,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 66,
-    "placa": "94DZE1",
-    "nombre": "94DZE1",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2019,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 67,
-    "placa": "64MBU4",
-    "nombre": "64MBU4",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2018,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 68,
-    "placa": "92DZE1",
-    "nombre": "92DZE1",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2018,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 69,
-    "placa": "H3C62R",
-    "nombre": "H3C62R",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2025,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 70,
-    "placa": "H3C61R",
-    "nombre": "H3C61R",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2025,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 71,
-    "placa": "88MBE7",
-    "nombre": "88MBE7",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2018,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 72,
-    "placa": "43EML4",
-    "nombre": "43EML4",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2015,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 73,
-    "placa": "24DZE2",
-    "nombre": "24DZE2",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2020,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 74,
-    "placa": "27MEU1",
-    "nombre": "27MEU1",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2015,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 75,
-    "placa": "H4L30J",
-    "nombre": "H4L30J",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2026,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 76,
-    "placa": "H4L28J",
-    "nombre": "H4L28J",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2026,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 77,
-    "placa": "H4L29J",
-    "nombre": "H4L29J",
-    "tipo": "Motocicleta",
-    "marca": "HONDA",
-    "modelo": "CARGO 150",
-    "año": 2026,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Gasolina"
-  },
-  {
-    "id": 78,
-    "placa": "80L928",
-    "nombre": "80L928",
-    "tipo": "Automovil",
-    "marca": "BYD",
-    "modelo": "DOLPHIN",
-    "año": 2026,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Electrico"
-  },
-  {
-    "id": 79,
-    "placa": "79L545",
-    "nombre": "79L545",
-    "tipo": "Automovil",
-    "marca": "BYD",
-    "modelo": "DOLPHIN",
-    "año": 2025,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Electrico"
-  },
-  {
-    "id": 80,
-    "placa": "88L382",
-    "nombre": "88L382",
-    "tipo": "Automovil",
-    "marca": "BYD",
-    "modelo": "DOLPHIN",
-    "año": 2026,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Electrico"
-  },
-  {
-    "id": 81,
-    "placa": "88L381",
-    "nombre": "88L381",
-    "tipo": "Automovil",
-    "marca": "BYD",
-    "modelo": "DOLPHIN",
-    "año": 2026,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Electrico"
-  },
-  {
-    "id": 82,
-    "placa": "88L383",
-    "nombre": "88L383",
-    "tipo": "Automovil",
-    "marca": "BYD",
-    "modelo": "DOLPHIN",
-    "año": 2026,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Electrico"
-  },
-  {
-    "id": 83,
-    "placa": "88L384",
-    "nombre": "88L384",
-    "tipo": "Automovil",
-    "marca": "BYD",
-    "modelo": "DOLPHIN",
-    "año": 2026,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Electrico"
-  },
-  {
-    "id": 84,
-    "placa": "73L716",
-    "nombre": "73L716",
-    "tipo": "Automovil",
-    "marca": "JINPENG",
-    "modelo": "LINGBOX",
-    "año": 2023,
-    "estado": "Activo",
-    "departamento": "EMA",
-    "combustible": "Electrico"
-  }
-];
+    // Vehículos: se cargan en tiempo de ejecución desde vehiculos.json (misma fuente única
+    // que usa index.html), en vez de una copia pegada aquí que se desincroniza del resto del sitio.
+    let vehiculos = [];
+
+    async function cargarVehiculos() {
+        try {
+            const respuesta = await fetch("vehiculos.json", { cache: "no-store" });
+            if (!respuesta.ok) throw new Error("HTTP " + respuesta.status);
+            vehiculos = await respuesta.json();
+        } catch (e) {
+            alert("No se pudo cargar vehiculos.json: " + e.message);
+            vehiculos = [];
+        }
+        renderGrid();
+    }
 
     const URL_BASE = "https://sistema-tickets-flota-m7bl.vercel.app";
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwAejrBRZT_2n1xm1sTkwqXKdyTBkw5dHXR3arFfrqbboXzFW4vPyeewaB2rWBDWjWilg/exec";
+
+    // ===== ACCESO (clave de administrador) =====
+    // La clave se valida contra el mismo Apps Script que ya protege "asignar_vehiculo",
+    // así que no hay una segunda contraseña que mantener. Se pide una sola vez por pestaña
+    // (sessionStorage) y de ahí en adelante "Solicitudes pendientes" ya no la vuelve a pedir.
+    let claveAdmin = null;
+
+    async function validarClave(clave) {
+        const respuesta = await fetch(SCRIPT_URL, {
+            method: "POST",
+            body: JSON.stringify({ accion: "listar_pendientes", clave: clave })
+        });
+        return respuesta.json();
+    }
+
+    async function intentarEntrar() {
+        const input = document.getElementById("gateClave");
+        const error = document.getElementById("gateError");
+        const boton = document.getElementById("gateBtn");
+        const clave = input.value;
+
+        if (!clave) {
+            error.textContent = "Ingresa la clave.";
+            error.style.display = "block";
+            return;
+        }
+
+        boton.disabled = true;
+        boton.textContent = "Verificando...";
+        error.style.display = "none";
+
+        try {
+            const datos = await validarClave(clave);
+            if (!datos.success) {
+                error.textContent = "❌ Clave incorrecta.";
+                error.style.display = "block";
+                input.value = "";
+                input.focus();
+                return;
+            }
+            sessionStorage.setItem("claveAdmin", clave);
+            desbloquear(clave);
+        } catch (e) {
+            error.textContent = "❌ Error de conexión: " + e.message;
+            error.style.display = "block";
+        } finally {
+            boton.disabled = false;
+            boton.textContent = "Entrar";
+        }
+    }
+
+    function desbloquear(clave) {
+        claveAdmin = clave;
+        document.getElementById("gateOverlay").style.display = "none";
+        document.getElementById("panelPrincipal").style.display = "block";
+        cargarVehiculos();
+    }
+
+    document.getElementById("gateClave").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") intentarEntrar();
+    });
 
     const logoImg = new Image();
     logoImg.src = "logo-am.webp";
@@ -1729,9 +851,8 @@
     // ===== SOLICITUDES PENDIENTES (conecta con el Apps Script) =====
 
     function abrirModalPendientes() {
-        document.getElementById("pendientesMensaje").textContent = "";
-        document.getElementById("listaPendientes").innerHTML = "";
         document.getElementById("modalPendientesOverlay").classList.add("activo");
+        cargarPendientes();
     }
 
     function cerrarModalPendientes() {
@@ -1739,24 +860,14 @@
     }
 
     async function cargarPendientes() {
-        const clave = document.getElementById("claveAdmin").value;
         const mensaje = document.getElementById("pendientesMensaje");
         const lista = document.getElementById("listaPendientes");
-
-        if (!clave) {
-            mensaje.textContent = "Ingresa la clave de administrador.";
-            return;
-        }
 
         mensaje.textContent = "Cargando...";
         lista.innerHTML = "";
 
         try {
-            const respuesta = await fetch(SCRIPT_URL, {
-                method: "POST",
-                body: JSON.stringify({ accion: "listar_pendientes", clave: clave })
-            });
-            const datos = await respuesta.json();
+            const datos = await validarClave(claveAdmin);
 
             if (!datos.success) {
                 mensaje.textContent = "❌ " + (datos.error || "No se pudo cargar");
@@ -1769,13 +880,13 @@
             }
 
             mensaje.textContent = `${datos.pendientes.length} solicitud(es) pendiente(s):`;
-            renderPendientes(datos.pendientes, clave);
+            renderPendientes(datos.pendientes);
         } catch (e) {
             mensaje.textContent = "❌ Error de conexión: " + e.message;
         }
     }
 
-    function renderPendientes(pendientes, clave) {
+    function renderPendientes(pendientes) {
         const lista = document.getElementById("listaPendientes");
         lista.innerHTML = "";
 
@@ -1810,7 +921,7 @@
 
             const boton = document.createElement("button");
             boton.textContent = "Asignar";
-            boton.onclick = () => asignarVehiculoAFolio(p.folio, select.value, clave, item);
+            boton.onclick = () => asignarVehiculoAFolio(p.folio, select.value, item);
             fila.appendChild(boton);
 
             item.appendChild(fila);
@@ -1818,7 +929,7 @@
         });
     }
 
-    async function asignarVehiculoAFolio(folio, placa, clave, elementoItem) {
+    async function asignarVehiculoAFolio(folio, placa, elementoItem) {
         if (!placa) {
             alert("Elige un vehículo antes de asignar.");
             return;
@@ -1832,7 +943,7 @@
                 method: "POST",
                 body: JSON.stringify({
                     accion: "asignar_vehiculo",
-                    clave: clave,
+                    clave: claveAdmin,
                     folio: folio,
                     placa: vehiculo.placa,
                     vehiculo: `${vehiculo.marca} ${vehiculo.modelo} ${vehiculo.año}`,
@@ -1858,7 +969,22 @@
 
     logoImg.onload = () => renderGrid();
     logoImg.onerror = () => renderGrid();
-    window.onload = () => renderGrid();
+
+    window.onload = async () => {
+        const claveGuardada = sessionStorage.getItem("claveAdmin");
+        if (!claveGuardada) return;
+
+        try {
+            const datos = await validarClave(claveGuardada);
+            if (datos.success) {
+                desbloquear(claveGuardada);
+            } else {
+                sessionStorage.removeItem("claveAdmin");
+            }
+        } catch (e) {
+            // Sin conexión para validar: se deja la pantalla de clave visible.
+        }
+    };
 </script>
 </body>
 </html>

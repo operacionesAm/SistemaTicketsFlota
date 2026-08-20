@@ -481,14 +481,14 @@
     </div>
 
     <div class="aviso">
-        ⚠️ Los cambios que hagas aquí (editar, eliminar, crear) viven solo en esta pestaña del navegador — se pierden al recargar.
-        Usa <strong>"Exportar vehiculos.json"</strong> cuando termines y comparte ese archivo para aplicar los cambios al sitio real.
+        ✅ Los cambios que hagas aquí (crear, editar, eliminar) se guardan de inmediato en tu hoja de cálculo (catálogo CATÁLOGO) —
+        no hace falta exportar ni volver a desplegar nada. <strong>"Exportar vehiculos.json"</strong> queda solo como respaldo manual opcional.
     </div>
 
     <div class="toolbar">
         <input type="text" id="buscador" placeholder="🔍 Buscar por placa, marca, modelo o departamento..." oninput="renderGrid()">
         <button class="btn btn-success" onclick="abrirModalNuevo()">➕ Nuevo vehículo / QR</button>
-        <button class="btn btn-outline" onclick="exportarJSON()">📥 Exportar vehiculos.json</button>
+        <button class="btn btn-outline" onclick="exportarJSON()">📥 Exportar respaldo (vehiculos.json)</button>
         <button class="btn btn-outline" onclick="abrirModalPendientes()">📋 Solicitudes pendientes</button>
         <button class="btn btn-outline" id="btnModoImprimir" onclick="toggleModoSeleccion()">🖨️ Imprimir QRs</button>
     </div>
@@ -536,7 +536,7 @@
 <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
         <h2 id="modalTitulo">Nuevo vehículo</h2>
-        <input type="hidden" id="fId">
+        <input type="hidden" id="fPlacaOriginal">
 
         <div class="form-group">
             <label for="fPlaca">Placa</label>
@@ -601,7 +601,7 @@
 
         <div class="modal-actions">
             <button class="btn btn-outline" onclick="cerrarModal()">Cancelar</button>
-            <button class="btn btn-success" onclick="guardarVehiculo()">Guardar</button>
+            <button class="btn btn-success" id="btnGuardarVehiculo" onclick="guardarVehiculo()">Guardar</button>
         </div>
     </div>
 </div>
@@ -614,11 +614,15 @@
 
     async function cargarVehiculos() {
         try {
-            const respuesta = await fetch("vehiculos.json", { cache: "no-store" });
-            if (!respuesta.ok) throw new Error("HTTP " + respuesta.status);
-            vehiculos = await respuesta.json();
+            const respuesta = await fetch(SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify({ accion: "listar_vehiculos" })
+            });
+            const datos = await respuesta.json();
+            if (!datos.success) throw new Error(datos.error || "No se pudo cargar");
+            vehiculos = datos.vehiculos;
         } catch (e) {
-            alert("No se pudo cargar vehiculos.json: " + e.message);
+            alert("No se pudo cargar el catálogo de vehículos: " + e.message);
             vehiculos = [];
         }
         renderGrid();
@@ -690,10 +694,6 @@
 
     const logoImg = new Image();
     logoImg.src = "logo-am.webp";
-
-    function siguienteId() {
-        return vehiculos.reduce((max, v) => Math.max(max, v.id || 0), 0) + 1;
-    }
 
     function vehiculosFiltrados() {
         const q = document.getElementById("buscador").value.trim().toLowerCase();
@@ -848,7 +848,7 @@
             const btnEditar = document.createElement("button");
             btnEditar.className = "accion-editar";
             btnEditar.textContent = "✏️ Editar";
-            btnEditar.onclick = () => abrirModalEditar(v.id);
+            btnEditar.onclick = () => abrirModalEditar(v.placa);
             acciones.appendChild(btnEditar);
 
             const btnDescargar = document.createElement("button");
@@ -860,7 +860,7 @@
             const btnEliminar = document.createElement("button");
             btnEliminar.className = "accion-eliminar";
             btnEliminar.textContent = "🗑️";
-            btnEliminar.onclick = () => eliminarVehiculo(v.id);
+            btnEliminar.onclick = () => eliminarVehiculo(v.placa);
             acciones.appendChild(btnEliminar);
 
             card.appendChild(acciones);
@@ -875,7 +875,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `QR_${vehiculo.placa || vehiculo.id}.png`;
+            a.download = `QR_${vehiculo.placa}.png`;
             a.click();
             URL.revokeObjectURL(url);
         }, "image/png");
@@ -965,17 +965,31 @@
         setTimeout(() => window.print(), 80);
     }
 
-    function eliminarVehiculo(id) {
-        const v = vehiculos.find(v => v.id === id);
+    async function eliminarVehiculo(placa) {
+        const v = vehiculos.find(v => v.placa === placa);
         if (!v) return;
-        if (!confirm(`¿Eliminar el vehículo ${v.placa} (${v.marca} ${v.modelo})? Esta acción solo afecta esta sesión del navegador.`)) return;
-        vehiculos = vehiculos.filter(v => v.id !== id);
-        renderGrid();
+        if (!confirm(`¿Eliminar el vehículo ${v.placa} (${v.marca} ${v.modelo})? Esta acción es permanente: se borra directo de la hoja de cálculo.`)) return;
+
+        try {
+            const respuesta = await fetch(SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify({ accion: "eliminar_vehiculo", clave: claveAdmin, placa: placa })
+            });
+            const resultado = await respuesta.json();
+            if (!resultado.success) {
+                alert("Error: " + (resultado.error || "No se pudo eliminar"));
+                return;
+            }
+            vehiculos = vehiculos.filter(v => v.placa !== placa);
+            renderGrid();
+        } catch (e) {
+            alert("Error de conexión: " + e.message);
+        }
     }
 
     function abrirModalNuevo() {
         document.getElementById("modalTitulo").textContent = "Nuevo vehículo";
-        document.getElementById("fId").value = "";
+        document.getElementById("fPlacaOriginal").value = "";
         document.getElementById("fPlaca").value = "";
         document.getElementById("fMarca").value = "";
         document.getElementById("fModelo").value = "";
@@ -987,11 +1001,11 @@
         document.getElementById("modalOverlay").classList.add("activo");
     }
 
-    function abrirModalEditar(id) {
-        const v = vehiculos.find(v => v.id === id);
+    function abrirModalEditar(placa) {
+        const v = vehiculos.find(v => v.placa === placa);
         if (!v) return;
         document.getElementById("modalTitulo").textContent = `Editar ${v.placa}`;
-        document.getElementById("fId").value = v.id;
+        document.getElementById("fPlacaOriginal").value = v.placa;
         document.getElementById("fPlaca").value = v.placa || "";
         document.getElementById("fMarca").value = v.marca || "";
         document.getElementById("fModelo").value = v.modelo || "";
@@ -1007,17 +1021,17 @@
         document.getElementById("modalOverlay").classList.remove("activo");
     }
 
-    function guardarVehiculo() {
+    async function guardarVehiculo() {
         const placa = document.getElementById("fPlaca").value.trim().toUpperCase();
         if (!placa) {
             alert("La placa es obligatoria");
             return;
         }
 
-        const idCampo = document.getElementById("fId").value;
-        const esNuevo = idCampo === "";
+        const placaOriginal = document.getElementById("fPlacaOriginal").value;
+        const esNuevo = placaOriginal === "";
 
-        if (vehiculos.some(v => v.placa === placa && (esNuevo || v.id !== parseInt(idCampo, 10)))) {
+        if (vehiculos.some(v => v.placa === placa && v.placa !== placaOriginal)) {
             alert("Ya existe un vehículo con esa placa");
             return;
         }
@@ -1037,21 +1051,48 @@
         const añoNum = parseInt(datos.año, 10);
         datos.año = isNaN(añoNum) ? datos.año : añoNum;
 
-        if (esNuevo) {
-            datos.id = siguienteId();
-            vehiculos.push(datos);
-        } else {
-            const id = parseInt(idCampo, 10);
-            const idx = vehiculos.findIndex(v => v.id === id);
-            vehiculos[idx] = { ...vehiculos[idx], ...datos, id };
-        }
+        const boton = document.getElementById("btnGuardarVehiculo");
+        boton.disabled = true;
+        boton.textContent = "Guardando...";
 
-        cerrarModal();
-        renderGrid();
+        try {
+            const respuesta = await fetch(SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    accion: "guardar_vehiculo",
+                    clave: claveAdmin,
+                    placaOriginal: placaOriginal,
+                    // "anio" es la clave que de verdad usa el backend (ver ESCALABILIDAD.md /
+                    // conversación sobre el bug de la ñ); se manda "año" también por si acaso.
+                    anio: datos.año,
+                    ...datos
+                })
+            });
+            const resultado = await respuesta.json();
+            if (!resultado.success) {
+                alert("Error: " + (resultado.error || "No se pudo guardar"));
+                return;
+            }
+
+            if (esNuevo) {
+                vehiculos.push(datos);
+            } else {
+                const idx = vehiculos.findIndex(v => v.placa === placaOriginal);
+                if (idx !== -1) vehiculos[idx] = { ...vehiculos[idx], ...datos };
+            }
+
+            cerrarModal();
+            renderGrid();
+        } catch (e) {
+            alert("Error de conexión: " + e.message);
+        } finally {
+            boton.disabled = false;
+            boton.textContent = "Guardar";
+        }
     }
 
     function exportarJSON() {
-        const ordenado = [...vehiculos].sort((a, b) => a.id - b.id);
+        const ordenado = [...vehiculos].sort((a, b) => a.placa.localeCompare(b.placa));
         const blob = new Blob([JSON.stringify(ordenado, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");

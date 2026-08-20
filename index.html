@@ -556,14 +556,21 @@
         let html5QrCode = null;
         let modoFlujo = "universal"; // "directo" (QR de un vehículo) | "universalReporte" | "universalSolicitud"
         
-        // Vehículos: se cargan en tiempo de ejecución desde vehiculos.json (fuente única),
-        // en vez de mantener una copia pegada aquí que se desincroniza del resto del sitio.
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwAejrBRZT_2n1xm1sTkwqXKdyTBkw5dHXR3arFfrqbboXzFW4vPyeewaB2rWBDWjWilg/exec";
+
+        // Vehículos: se cargan en tiempo de ejecución desde el catálogo en Google Sheets
+        // (vía Apps Script), así que un vehículo dado de alta en el panel admin queda
+        // disponible aquí de inmediato, sin exportar ni desplegar nada.
         let VEHICULOS = [];
 
         async function cargarVehiculos() {
-            const respuesta = await fetch("vehiculos.json", { cache: "no-store" });
-            if (!respuesta.ok) throw new Error("HTTP " + respuesta.status);
-            VEHICULOS = await respuesta.json();
+            const respuesta = await fetch(SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify({ accion: "listar_vehiculos" })
+            });
+            const datos = await respuesta.json();
+            if (!datos.success) throw new Error(datos.error || "No se pudo cargar el listado de vehículos");
+            VEHICULOS = datos.vehiculos;
         }
 
         // ===== FUNCIONES =====
@@ -849,9 +856,8 @@
             
             // Enviar a Apps Script
             showLoading(true);
-            
-            const scriptURL = "https://script.google.com/macros/s/AKfycbwAejrBRZT_2n1xm1sTkwqXKdyTBkw5dHXR3arFfrqbboXzFW4vPyeewaB2rWBDWjWilg/exec";
-            fetch(scriptURL, {
+
+            fetch(SCRIPT_URL, {
                 method: "POST",
                 body: JSON.stringify(formData)
             })
